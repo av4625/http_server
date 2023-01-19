@@ -1,0 +1,41 @@
+name: Build
+'on':
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+jobs:
+  Build:
+    runs-on: '${{ matrix.os }}'
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        python-version:
+          - '3.x'
+    steps:
+      - name: 'Set up Python ${{ matrix.python-version }}'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Install conan
+        run: |
+          pip install conan
+          conan user
+          conan profile new default --detect
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+      - name: Create build directory
+        run: mkdir build
+      - name: Cmake
+        working-directory: ./build
+        run: cmake ..
+      - name: Make
+        working-directory: ./build
+        run: make -j
+      # - name: Run tests
+      #   working-directory: ./build
+      #   run: ctest
