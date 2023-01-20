@@ -17,7 +17,7 @@ class response
 public:
     response();
 
-    std::vector<boost::asio::const_buffer> to_buffers();
+    std::vector<boost::asio::const_buffer> to_buffers() const;
 
     void set_status_code(status_code status);
 

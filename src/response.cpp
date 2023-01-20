@@ -22,14 +22,14 @@ response::response() :
 {
 }
 
-std::vector<boost::asio::const_buffer> response::to_buffers()
+std::vector<boost::asio::const_buffer> response::to_buffers() const
 {
     std::vector<boost::asio::const_buffer> buffers;
     buffers.push_back(http_status_code_to_status_buffer(status_));
 
     for (std::size_t i = 0; i < headers_.size(); ++i)
     {
-        header& h = headers_[i];
+        const header& h{headers_[i]};
         buffers.push_back(boost::asio::buffer(h.name));
         buffers.push_back(boost::asio::buffer(name_value_separator));
         buffers.push_back(boost::asio::buffer(h.value));

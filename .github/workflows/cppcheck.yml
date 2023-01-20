@@ -16,12 +16,13 @@ jobs:
           - ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: cppcheck
+      - name: CPPCheck
         uses: deep5050/cppcheck-action@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          other_options: --suppress=missingIncludeSystem --error-exitcode=1
-      - name: upload_results
+          other_options: --suppress=missingIncludeSystem --suppress=unusedFunction:test/* --error-exitcode=1 --library=googletest --library=boost
+      - name: Upload Results
+        # Not if cancelled
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:

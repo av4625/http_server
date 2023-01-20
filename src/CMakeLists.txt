@@ -1,7 +1,6 @@
-add_executable(http_server
+add_library(http_server
     connection_impl.cpp
     connection_manager_impl.cpp
-    main.cpp
     method.cpp
     mime_types.cpp
     request_handler_impl.cpp
@@ -13,3 +12,6 @@ add_executable(http_server
     stock_responses.cpp)
 
 target_link_libraries(http_server PUBLIC Boost::system)
+
+add_executable(http_server_test main.cpp)
+target_link_libraries(http_server_test PUBLIC http_server)

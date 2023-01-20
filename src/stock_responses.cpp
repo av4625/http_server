@@ -27,7 +27,7 @@ const char accepted[]{
 const char no_content[]{
     "<html>"
     "<head><title>No Content</title></head>"
-    "<body><h1>204 Content</h1></body>"
+    "<body><h1>204 No Content</h1></body>"
     "</html>"};
 const char multiple_choices[]{
     "<html>"

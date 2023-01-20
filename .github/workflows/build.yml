@@ -1,4 +1,4 @@
-name: Build
+name: Build | Unittests | Coverage
 'on':
   push:
     branches:
@@ -7,7 +7,7 @@ name: Build
     branches:
       - '**'
 jobs:
-  Build:
+  build:
     runs-on: '${{ matrix.os }}'
     strategy:
       matrix:
@@ -16,11 +16,13 @@ jobs:
         python-version:
           - '3.x'
     steps:
+      - name: Install Lcov
+        run: sudo apt-get install -y lcov
       - name: 'Set up Python ${{ matrix.python-version }}'
         uses: actions/setup-python@v4
         with:
           python-version: '${{ matrix.python-version }}'
-      - name: Checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Install conan
         run: |
@@ -30,12 +32,20 @@ jobs:
           conan profile update settings.compiler.libcxx=libstdc++11 default
       - name: Create build directory
         run: mkdir build
-      - name: Cmake
+      - name: Configure
         working-directory: ./build
-        run: cmake ..
-      - name: Make
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=true ..
+      - name: Build | Run Unittests | Generate Coverage
         working-directory: ./build
-        run: make -j
-      # - name: Run tests
-      #   working-directory: ./build
-      #   run: ctest
+        run: cmake --build . -j 10 -t coverage
+      - name: Run Unittests On Fail
+        if: failure()
+        working-directory: ./build
+        run: ctest --rerun-failed --output-on-failure
+      - name: Upload Results
+        # Not if cancelled
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage_report
+          path: ./build/coverage/
