@@ -24,7 +24,7 @@ public:
         (override));
 
     MOCK_METHOD(
-        void, handle_request, (const request&, response&), (const, override));
+        void, handle_request, (const request_data&, response&), (const, override));
 };
 
 }

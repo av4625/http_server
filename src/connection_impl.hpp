@@ -8,7 +8,7 @@
 #include "connection.hpp"
 #include "connection_manager_fwd.hpp"
 #include "response.hpp"
-#include "request.hpp"
+#include "request_data.hpp"
 #include "request_handler_fwd.hpp"
 #include "request_parser.hpp"
 
@@ -53,7 +53,7 @@ private:
     boost::array<char, 8192> buffer_;
 
     // The incoming request.
-    request request_;
+    request_data request_;
 
     // The parser for the incoming request.
     request_parser request_parser_;

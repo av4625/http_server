@@ -4,7 +4,7 @@
 namespace http
 {
 
-struct request;
+class request;
 
 }
 

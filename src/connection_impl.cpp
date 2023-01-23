@@ -49,7 +49,7 @@ void connection_impl::stop()
 
 void connection_impl::handle_read(
     const boost::system::error_code& e,
-    std::size_t bytes_transferred)
+    const std::size_t bytes_transferred)
 {
     if (!e)
     {

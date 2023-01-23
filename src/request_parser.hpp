@@ -4,7 +4,7 @@
 #include <boost/logic/tribool.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include "request_fwd.hpp"
+#include "request_data_fwd.hpp"
 
 namespace http
 {
@@ -25,7 +25,7 @@ public:
     // the input has been consumed.
     template <typename InputIterator>
     boost::tuple<boost::tribool, InputIterator> parse(
-        request& req,
+        request_data& req,
         InputIterator begin,
         InputIterator end)
     {
@@ -45,7 +45,7 @@ public:
 
 private:
     // Handle the next character of input.
-    boost::tribool consume(request& req, char input);
+    boost::tribool consume(request_data& req, char input);
 
     // Check if a byte is an HTTP character.
     static bool is_char(int c);

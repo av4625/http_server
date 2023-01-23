@@ -1,5 +1,5 @@
 #include "request_parser.hpp"
-#include "request.hpp"
+#include "request_data.hpp"
 
 namespace http
 {
@@ -13,7 +13,7 @@ void request_parser::reset()
     state_ = state::method_start;
 }
 
-boost::tribool request_parser::consume(request& req, const char input)
+boost::tribool request_parser::consume(request_data& req, const char input)
 {
     switch (state_)
     {

@@ -6,6 +6,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "method.hpp"
+#include "request_data_fwd.hpp"
 #include "request_fwd.hpp"
 #include "response_fwd.hpp"
 
@@ -28,7 +29,7 @@ public:
         std::function<void(const request&, response&)> callback) = 0;
 
     // Handle a request and produce a response.
-    virtual void handle_request(const request& req, response& res) const = 0;
+    virtual void handle_request(const request_data& req, response& res) const = 0;
 };
 
 }

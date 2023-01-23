@@ -10,7 +10,7 @@ namespace http
 namespace
 {
 
-const std::unordered_map<std::string, const method> methods(
+const std::unordered_map<std::string, const method> methods{
     boost::assign::map_list_of
         ("GET", method::GET)
         ("HEAD", method::HEAD)
@@ -20,7 +20,7 @@ const std::unordered_map<std::string, const method> methods(
         ("CONNECT", method::CONNECT)
         ("OPTIONS", method::OPTIONS)
         ("TRACE", method::TRACE)
-        ("PATCH", method::PATCH));
+        ("PATCH", method::PATCH)};
 
 }
 

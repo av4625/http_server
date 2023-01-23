@@ -23,7 +23,7 @@ public:
         method method,
         std::function<void(const request&, response&)> callback) override;
 
-    void handle_request(const request& req, response& res) const override;
+    void handle_request(const request_data& req, response& res) const override;
 
 private:
     // The directory containing the files to be served.

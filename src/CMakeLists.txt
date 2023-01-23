@@ -4,6 +4,7 @@ add_library(http_server
     method.cpp
     mime_types.cpp
     request_handler_impl.cpp
+    request_impl.cpp
     request_parser.cpp
     response.cpp
     server_factory.cpp

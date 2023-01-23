@@ -7,7 +7,8 @@
 
 #include "mime_types.hpp"
 #include "response.hpp"
-#include "request.hpp"
+#include "request_data.hpp"
+#include "request_impl.hpp"
 #include "status_code.hpp"
 #include "stock_responses.hpp"
 
@@ -33,7 +34,7 @@ void request_handler_impl::add_request_handler(
     handlers_[{uri, method}] = std::move(callback);
 }
 
-void request_handler_impl::handle_request(const request& req, response& res) const
+void request_handler_impl::handle_request(const request_data& req, response& res) const
 {
     // Decode url to path.
     std::string request_path;
@@ -54,12 +55,12 @@ void request_handler_impl::handle_request(const request& req, response& res) con
 
     try
     {
-        const auto request{std::make_pair(request_path, string_to_method(req.method))};
+        const auto endpoint{std::make_pair(request_path, string_to_method(req.method))};
 
         // Custom handler specified for the request
-        if (handlers_.contains(request))
+        if (handlers_.contains(endpoint))
         {
-            handlers_.at(request)(req, res);
+            handlers_.at(endpoint)(request_impl(req), res);
         }
         // Have a directory to serve
         else if (!doc_root_.empty())

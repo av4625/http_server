@@ -2,21 +2,19 @@
 #define HTTP_REQUEST_HPP
 
 #include <string>
-#include <vector>
-
-#include "header.hpp"
 
 namespace http
 {
 
-// A request received from a client.
-struct request
+// A class/wrapper to provide unmodifiable access to the request data
+class request
 {
-    std::string method;
-    std::string uri;
-    int http_version_major;
-    int http_version_minor;
-    std::vector<header> headers;
+public:
+    virtual ~request() = default;
+
+    virtual bool has_query_param(const std::string& key) const = 0;
+
+    virtual const std::string& get_query_param(const std::string& key) const = 0;
 };
 
 }

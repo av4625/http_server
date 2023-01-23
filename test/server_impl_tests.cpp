@@ -4,6 +4,8 @@
 
 #include "mocks/connection_manager_mock.hpp"
 #include "mocks/request_handler_mock.hpp"
+
+#include <request_impl.hpp>
 #include <server_impl.hpp>
 
 namespace http
@@ -70,7 +72,7 @@ TEST_F(ServerImplTests, OnWillAddRequestHandler)
 {
     const std::string uri{"/endpoint.txt"};
     const method m{method::GET};
-    const std::function<void(const request&, response&)> callback{};
+    const std::function<void(const request_data&, response&)> callback{};
 
     EXPECT_CALL(*request_handler_mock_, add_request_handler(
         uri, m, ::testing::_)).WillOnce(::testing::Invoke(
@@ -82,7 +84,8 @@ TEST_F(ServerImplTests, OnWillAddRequestHandler)
         [this](const request&, response&){callback_check_.increment();});
 
     response res;
-    callback_(request(), res);
+    request_data data;
+    callback_(request_impl(data), res);
     EXPECT_EQ(1, callback_check_.i);
 }
 

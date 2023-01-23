@@ -10,7 +10,7 @@ namespace http
 namespace
 {
 
-const std::unordered_map<std::string, std::string> extension_mime_types(
+const std::unordered_map<std::string, std::string> extension_mime_types{
     boost::assign::map_list_of
         ("gif", "image/gif")
         ("htm", "text/html")
@@ -19,7 +19,7 @@ const std::unordered_map<std::string, std::string> extension_mime_types(
         ("png", "image/png")
         ("css", "text/css")
         ("js", "text/javascript")
-        ("txt", "text/plain"));
+        ("txt", "text/plain")};
 
 }
 
