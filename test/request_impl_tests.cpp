@@ -10,10 +10,10 @@ namespace http
 namespace
 {
 
-const std::unordered_map<std::string, std::string> query_parameters{
-    boost::assign::map_list_of
-        ("key1", "value1")
-        ("key2", "value2")};
+const std::vector<query_parameter> query_parameters{
+    boost::assign::list_of
+        (query_parameter{"key1", "value1"})
+        (query_parameter{"key2", "value2"})};
 
 const std::vector<header> headers{
     boost::assign::list_of
@@ -24,7 +24,7 @@ class RequestImplTests : public ::testing::Test
 {
 protected:
     RequestImplTests() :
-        request_data_{"GET", "/endpoint", 1, 0, query_parameters, headers},
+        request_data_{"GET", "/endpoint", query_parameters, 1, 0, headers},
         request_(request_data_)
     {
     }

@@ -1,15 +1,13 @@
 #ifndef HTTP_HEADER_HPP
 #define HTTP_HEADER_HPP
 
-#include <string>
+#include "name_value.hpp"
 
 namespace http
 {
 
-struct header
+struct header : public name_value
 {
-    std::string name;
-    std::string value;
 };
 
 }

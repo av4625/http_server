@@ -2,10 +2,10 @@
 #define HTTP_REQUEST_DATA_HPP
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "header.hpp"
+#include "query_parameter.hpp"
 
 namespace http
 {
@@ -15,9 +15,9 @@ struct request_data
 {
     std::string method;
     std::string uri;
+    std::vector<query_parameter> query_parameters;
     int http_version_major;
     int http_version_minor;
-    std::unordered_map<std::string, std::string> query_parameters;
     std::vector<header> headers;
 };
 

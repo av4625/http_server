@@ -65,6 +65,8 @@ private:
         method_start,
         method,
         uri,
+        query_parameter_name,
+        query_parameter_value,
         http_version_h,
         http_version_t_1,
         http_version_t_2,

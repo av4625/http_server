@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdexcept>
 
 #include "request_impl.hpp"
@@ -11,16 +12,25 @@ request_impl::request_impl(const request_data& data) : data_(data)
 
 bool request_impl::has_query_param(const std::string& key) const
 {
-    return data_.query_parameters.contains(key);
+    return std::find_if(
+        data_.query_parameters.begin(),
+        data_.query_parameters.end(),
+        [&key](const query_parameter& q_p){return q_p.name == key;}) !=
+            data_.query_parameters.end();
 }
 
 const std::string& request_impl::get_query_param(const std::string& key) const
 {
-    try
+    const auto param{std::find_if(
+        data_.query_parameters.begin(),
+        data_.query_parameters.end(),
+        [&key](const query_parameter& q_p){return q_p.name == key;})};
+
+    if (param != data_.query_parameters.end())
     {
-        return data_.query_parameters.at(key);
+        return param->value;
     }
-    catch(const std::out_of_range&)
+    else
     {
         throw std::invalid_argument("No query parameter with key: " + key);
     }

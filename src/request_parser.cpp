@@ -54,6 +54,12 @@ boost::tribool request_parser::consume(request_data& req, const char input)
                 state_ = state::http_version_h;
                 return boost::indeterminate;
             }
+            else if (input == '?')
+            {
+                state_ = state::query_parameter_name;
+                req.query_parameters.push_back(query_parameter());
+                return boost::indeterminate;
+            }
             else if (is_ctl(input))
             {
                 return false;
@@ -61,6 +67,46 @@ boost::tribool request_parser::consume(request_data& req, const char input)
             else
             {
                 req.uri.push_back(input);
+                return boost::indeterminate;
+            }
+        }
+        case state::query_parameter_name:
+        {
+            if (input == '=')
+            {
+                state_ = state::query_parameter_value;
+                return boost::indeterminate;
+            }
+            else if (req.query_parameters.empty() || is_ctl(input) || is_tspecial(input))
+            {
+                return false;
+            }
+            else
+            {
+                req.query_parameters.back().name.push_back(input);
+                return boost::indeterminate;
+            }
+        }
+        case state::query_parameter_value:
+        {
+            if (input == '&')
+            {
+                state_ = state::query_parameter_name;
+                req.query_parameters.push_back(query_parameter());
+                return boost::indeterminate;
+            }
+            else if (input == ' ')
+            {
+                state_ = state::http_version_h;
+                return boost::indeterminate;
+            }
+            else if (req.query_parameters.empty() || is_ctl(input) || is_tspecial(input))
+            {
+                return false;
+            }
+            else
+            {
+                req.query_parameters.back().value.push_back(input);
                 return boost::indeterminate;
             }
         }
