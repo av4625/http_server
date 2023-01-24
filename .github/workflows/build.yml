@@ -43,7 +43,6 @@ jobs:
         working-directory: ./build
         run: ctest --rerun-failed --output-on-failure
       - name: Upload Results
-        # Not if cancelled
         if: success()
         uses: actions/upload-artifact@v3
         with:
