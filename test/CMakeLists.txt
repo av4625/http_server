@@ -3,12 +3,11 @@ add_library(unittests STATIC main.cpp)
 target_link_libraries(unittests PUBLIC GTest::gtest)
 
 add_executable(http_server_tests
-    method_tests.cpp
     mime_types_tests.cpp
     request_impl_tests.cpp
+    response_tests.cpp
     server_factory_tests.cpp
     server_impl_tests.cpp
-    status_code_tests.cpp
     stock_responses_tests.cpp)
 
 target_link_libraries(

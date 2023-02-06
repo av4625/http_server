@@ -1,13 +1,16 @@
 #ifndef HTTP_STOCK_RESPONSE_HPP
 #define HTTP_STOCK_RESPONSE_HPP
 
-#include "response_fwd.hpp"
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
+
 #include "status_code.hpp"
 
 namespace http
 {
 
-response stock_reply(status_code status);
+boost::beast::http::response<boost::beast::http::string_body> stock_reply(
+    status_code status, bool keep_alive, unsigned int version);
 
 }
 

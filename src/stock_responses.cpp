@@ -2,10 +2,7 @@
 
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
-#include "header.hpp"
-#include "response.hpp"
+#include <boost/beast/version.hpp>
 
 namespace http
 {
@@ -24,11 +21,7 @@ const char accepted[]{
     "<head><title>Accepted</title></head>"
     "<body><h1>202 Accepted</h1></body>"
     "</html>"};
-const char no_content[]{
-    "<html>"
-    "<head><title>No Content</title></head>"
-    "<body><h1>204 No Content</h1></body>"
-    "</html>"};
+const char no_content[]{""};
 const char multiple_choices[]{
     "<html>"
     "<head><title>Multiple Choices</title></head>"
@@ -39,16 +32,12 @@ const char moved_permanently[]{
     "<head><title>Moved Permanently</title></head>"
     "<body><h1>301 Moved Permanently</h1></body>"
     "</html>"};
-const char moved_temporarily[]{
+const char found[]{
     "<html>"
     "<head><title>Moved Temporarily</title></head>"
     "<body><h1>302 Moved Temporarily</h1></body>"
     "</html>"};
-const char not_modified[]{
-    "<html>"
-    "<head><title>Not Modified</title></head>"
-    "<body><h1>304 Not Modified</h1></body>"
-    "</html>"};
+const char not_modified[]{""};
 const char bad_request[]{
     "<html>"
     "<head><title>Bad Request</title></head>"
@@ -118,9 +107,9 @@ std::string status_code_to_content(const status_code status)
         {
             return moved_permanently;
         }
-        case status_code::moved_temporarily:
+        case status_code::found:
         {
-            return moved_temporarily;
+            return found;
         }
         case status_code::not_modified:
         {
@@ -167,18 +156,20 @@ std::string status_code_to_content(const status_code status)
 
 }
 
-response stock_reply(const status_code status)
+boost::beast::http::response<boost::beast::http::string_body> stock_reply(
+    const status_code status,
+    const bool keep_alive,
+    const unsigned int version)
 {
-    response res;
-    res.set_status_code(status);
-    res.set_content(status_code_to_content(status));
-    res.add_header(
-        "Content-Length",
-        boost::lexical_cast<std::string>(res.content_length()));
-    res.add_header("Content-Type", "text/html");
-    res.add_header("Connection", "close");
+    boost::beast::http::response<boost::beast::http::string_body> response{
+        status, version};
+    response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+    response.set(boost::beast::http::field::content_type, "text/html");
+    response.keep_alive(keep_alive);
+    response.body() = status_code_to_content(status);
+    response.prepare_payload();
 
-    return res;
+    return response;
 }
 
 }

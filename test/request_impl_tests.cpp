@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <boost/assign.hpp>
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
 
+#include <method.hpp>
 #include <request_impl.hpp>
 
 namespace http
@@ -10,26 +12,19 @@ namespace http
 namespace
 {
 
-const std::vector<query_parameter> query_parameters{
-    boost::assign::list_of
-        (query_parameter{"key1", "value1"})
-        (query_parameter{"key2", "value2"})};
-
-const std::vector<header> headers{
-    boost::assign::list_of
-        (header{"hkey1", "hvalue1"})
-        (header{"hkey2", "hvalue2"})};
-
 class RequestImplTests : public ::testing::Test
 {
 protected:
     RequestImplTests() :
-        request_data_{"GET", "/endpoint", query_parameters, 1, 0, headers},
-        request_(request_data_)
+        request_(
+            boost::beast::http::request<boost::beast::http::string_body>(
+                boost::beast::http::verb::get,
+                "/endpoint?key1=value1&key2=value2",
+                11))
     {
     }
 
-    const request_data request_data_;
+    boost::beast::http::request<boost::beast::http::string_body> boost_request_;
     const request_impl request_;
 };
 
@@ -47,7 +42,7 @@ class RequestImplGetQueryTests :
 
 }
 
-TEST_P(RequestImplHasQueryTests, HasQueryParamWhenWillReturnWhetherItExists)
+TEST_P(RequestImplHasQueryTests, HasQueryParamWillReturnWhetherItExists)
 {
     EXPECT_EQ(GetParam().first, request_.has_query_param(GetParam().second));
 }

@@ -6,7 +6,7 @@
 namespace http
 {
 
-// A class/wrapper to provide unmodifiable access to the request data
+// A class/wrapper to provide unmodifiable access to the request
 class request
 {
 public:
@@ -14,7 +14,7 @@ public:
 
     virtual bool has_query_param(const std::string& key) const = 0;
 
-    virtual const std::string& get_query_param(const std::string& key) const = 0;
+    virtual std::string get_query_param(const std::string& key) const = 0;
 };
 
 }

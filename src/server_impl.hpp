@@ -2,26 +2,27 @@
 #define HTTP_SERVER_IMPL_HPP
 
 #include <memory>
-#include <string>
 
 #include <boost/asio.hpp>
+#include <boost/beast/core/error.hpp>
 
-#include "connection_fwd.hpp"
-#include "connection_manager_fwd.hpp"
-#include "request_handler_fwd.hpp"
 #include "server.hpp"
+#include "request_handler_fwd.hpp"
+#include "session_manager_fwd.hpp"
 
 namespace http
 {
 
-class server_impl : public server
+class server_impl :
+    public server,
+    public std::enable_shared_from_this<server_impl>
 {
 public:
     server_impl(
         const std::string& address,
         const std::string& port,
         const std::shared_ptr<boost::asio::io_context>& io_context,
-        const std::shared_ptr<connection_manager>& connection_manager,
+        std::unique_ptr<session_manager> session_manager,
         const std::shared_ptr<request_handler>& request_handler);
 
     void start_server() override;
@@ -40,7 +41,9 @@ private:
     void start_accept();
 
     // Handle completion of an asynchronous accept operation.
-    void handle_accept(const boost::system::error_code& e);
+    void handle_accept(
+        const boost::beast::error_code& ec,
+        boost::asio::ip::tcp::socket socket);
 
     // The io_context used to perform asynchronous operations.
     const std::shared_ptr<boost::asio::io_context> io_context_;
@@ -48,18 +51,13 @@ private:
     // Acceptor used to listen for incoming connections.
     boost::asio::ip::tcp::acceptor acceptor_;
 
-    // The connection manager which owns all live connections.
-    const std::shared_ptr<connection_manager> connection_manager_;
-
-    // The next connection to be accepted.
-    std::shared_ptr<connection> new_connection_;
-
-    // The handler for all incoming requests.
-    const std::shared_ptr<request_handler> request_handler_;
-
     const std::string address_;
 
     const std::string port_;
+
+    const std::unique_ptr<session_manager> session_manager_;
+
+    const std::shared_ptr<request_handler> request_handler_;
 };
 
 }

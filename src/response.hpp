@@ -2,11 +2,12 @@
 #define HTTP_RESPONSE_IMPL_HPP
 
 #include <string>
-#include <vector>
 
-#include <boost/asio/buffer.hpp>
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/message_generator.hpp>
+#include <boost/beast/http/string_body.hpp>
 
-#include "header_fwd.hpp"
+#include "header_field.hpp"
 #include "status_code.hpp"
 
 namespace http
@@ -15,30 +16,20 @@ namespace http
 class response
 {
 public:
-    response();
-
-    std::vector<boost::asio::const_buffer> to_buffers() const;
+    explicit response(unsigned int version);
 
     void set_status_code(status_code status);
 
-    void add_header(
-        const std::string& key, const std::string& value);
-
-    void append_content(const char* content, size_t count);
+    void add_header(field field, const std::string& value);
 
     void set_content(const std::string& content);
 
-    int content_length() const;
+    void calculate_and_set_content_length();
+
+    operator boost::beast::http::response<boost::beast::http::string_body>() const;
 
 private:
-    // The status of the response.
-    status_code status_;
-
-    // The headers to be included in the response.
-    std::vector<header> headers_;
-
-    // The content to be sent in the response.
-    std::string content_;
+    boost::beast::http::response<boost::beast::http::string_body> response_;
 };
 
 }

@@ -3,10 +3,12 @@
 
 #include <string>
 
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/message_generator.hpp>
+#include <boost/beast/http/string_body.hpp>
 #include <boost/noncopyable.hpp>
 
 #include "method.hpp"
-#include "request_data_fwd.hpp"
 #include "request_fwd.hpp"
 #include "response_fwd.hpp"
 
@@ -29,7 +31,9 @@ public:
         std::function<void(const request&, response&)> callback) = 0;
 
     // Handle a request and produce a response.
-    virtual void handle_request(const request_data& req, response& res) const = 0;
+    virtual boost::beast::http::message_generator handle_request(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const = 0;
 };
 
 }

@@ -1,25 +1,12 @@
 #ifndef HTTP_METHOD_HPP
 #define HTTP_METHOD_HPP
 
-#include <string>
+#include <boost/beast/http/verb.hpp>
 
 namespace http
 {
 
-enum class method
-{
-    GET,
-    HEAD,
-    POST,
-    PUT,
-    DELETE,
-    CONNECT,
-    OPTIONS,
-    TRACE,
-    PATCH
-};
-
-method string_to_method(const std::string& method);
+using method = boost::beast::http::verb;
 
 }
 

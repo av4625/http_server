@@ -7,7 +7,9 @@ set(CMAKE_MACOSX_RPATH 1)
 
 add_compile_options(-Wall -Wextra -pedantic -Werror)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -fprofile-arcs -ftest-coverage")
+if(COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -fprofile-arcs -ftest-coverage")
+endif()
 
 # We default to Release build type if DCMAKE_BUILD_TYPE not provided
 if(NOT CMAKE_BUILD_TYPE)

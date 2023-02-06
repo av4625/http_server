@@ -23,7 +23,9 @@ public:
         method method,
         std::function<void(const request&, response&)> callback) override;
 
-    void handle_request(const request_data& req, response& res) const override;
+    boost::beast::http::message_generator handle_request(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const override;
 
 private:
     // The directory containing the files to be served.
@@ -43,10 +45,6 @@ private:
         std::pair<std::string, method>,
         std::function<void(const request&, response&)>,
         boost::hash<std::pair<std::string, method> > > handlers_;
-
-    /* Perform URL-decoding on a string. Returns false if the encoding was
-    invalid. */
-    static bool url_decode(const std::string& in, std::string& out);
 };
 
 }
