@@ -1,28 +1,29 @@
 #ifndef HTTP_REQUEST_IMPL_HPP
 #define HTTP_REQUEST_IMPL_HPP
 
-#include "request.hpp"
-#include "request_data.hpp"
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
+#include <boost/url/url_view.hpp>
+
+#include <http/request.hpp>
 
 namespace http
 {
 
-// A class to provide unmodifiable access to the request
 class request_impl : public request
 {
 public:
-    explicit request_impl(const request_data& data);
+    explicit request_impl(boost::beast::http::request<
+        boost::beast::http::string_body>&& request);
 
     bool has_query_param(const std::string& key) const override;
 
-    const std::string& get_query_param(const std::string& key) const override;
+    std::string get_query_param(const std::string& key) const override;
 
 private:
-    /* Stored as a ref so the data must be kept alive outside this class.
-       Might be better to use a shared pointer for safety, as performance and
-       memory hit shouldn't be big.
-       The request_data is currently kept alive by a connection  */
-    const request_data& data_;
+    const boost::beast::http::request<boost::beast::http::string_body> request_;
+    const std::string url_str_;
+    const boost::urls::url_view url_;
 };
 
 }

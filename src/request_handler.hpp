@@ -3,10 +3,13 @@
 
 #include <string>
 
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/message_generator.hpp>
+#include <boost/beast/http/string_body.hpp>
 #include <boost/noncopyable.hpp>
 
-#include "method.hpp"
-#include "request_data_fwd.hpp"
+#include <http/method.hpp>
+
 #include "request_fwd.hpp"
 #include "response_fwd.hpp"
 
@@ -19,17 +22,51 @@ class request_handler : private boost::noncopyable
 public:
     virtual ~request_handler() = default;
 
-    // Serve files from a directory
+    /**
+     * @brief Serve files from a directory
+     *        This is not thread safe and needs to be called when the server is
+     *        not running
+     *
+     * @param[in] doc_root The path to the files to serve
+     **/
     virtual void serve_from_directory(const std::string& doc_root) = 0;
 
-    // Add a custom request handler
+    /**
+     * @brief Add a custom request handler
+     *        This is thread safe and new handlers can be added while the server
+     *        is unning
+     *
+     * @param[in] uri The endpoint to handle
+     * @param[in] method The method to handle
+     * @param[in] callback The handler for the endpoint and method
+     **/
     virtual void add_request_handler(
         const std::string& uri,
         method method,
         std::function<void(const request&, response&)> callback) = 0;
 
-    // Handle a request and produce a response.
-    virtual void handle_request(const request_data& req, response& res) const = 0;
+    /**
+     * @brief Handle a request and produce a response.
+     *        This is thread safe so multiple requests can be trying to access
+     *        the same custom handler at the same time, but the same custom
+     *        handler will not be called at the same time from different
+     *        threads.
+     *
+     * @param[in] request The request to handle
+     *
+     * @return The response to send as a message generator
+     **/
+    virtual boost::beast::http::message_generator handle_request(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const = 0;
+
+    /**
+     * @brief Clear all custom request handlers and reset server from directory
+     *        path.
+     *        This is not thread safe and needs to be called after the server
+     *        has been ended.
+     **/
+    virtual void reset() = 0;
 };
 
 }

@@ -1,71 +1,43 @@
-#include "response.hpp"
-
-#include <boost/lexical_cast.hpp>
-
-#include "header.hpp"
+#include <http/response.hpp>
 
 namespace http
 {
 
-namespace
+response::response(const unsigned int version)
 {
-
-const char name_value_separator[] = { ':', ' ' };
-const char crlf[] = { '\r', '\n' };
-
-}
-
-response::response() :
-    status_(status_code::ok),
-    headers_(),
-    content_()
-{
-}
-
-std::vector<boost::asio::const_buffer> response::to_buffers() const
-{
-    std::vector<boost::asio::const_buffer> buffers;
-    buffers.push_back(http_status_code_to_status_buffer(status_));
-
-    for (std::size_t i = 0; i < headers_.size(); ++i)
-    {
-        const header& h{headers_[i]};
-        buffers.push_back(boost::asio::buffer(h.name));
-        buffers.push_back(boost::asio::buffer(name_value_separator));
-        buffers.push_back(boost::asio::buffer(h.value));
-        buffers.push_back(boost::asio::buffer(crlf));
-    }
-
-    buffers.push_back(boost::asio::buffer(crlf));
-    buffers.push_back(boost::asio::buffer(content_));
-
-    return buffers;
+    response_.version(version);
+    // Default to ok status
+    response_.result(status_code::ok);
 }
 
 void response::set_status_code(const status_code status)
 {
-    status_ = status;
+    response_.result(status);
 }
 
-void response::add_header(
-    const std::string& key, const std::string& value)
+void response::add_header(const field field, const std::string& value)
 {
-    headers_.push_back(header{key, value});
-}
-
-void response::append_content(const char* content, const size_t count)
-{
-    content_.append(content, count);
+    response_.set(field, value);
 }
 
 void response::set_content(const std::string& content)
 {
-    content_ = content;
+    response_.body() = content;
 }
 
-int response::content_length() const
+void response::calculate_and_set_content_length()
 {
-    return content_.size();
+    response_.prepare_payload();
+}
+
+response::operator boost::beast::http::message_generator()
+{
+    return std::move(response_);
+}
+
+response::operator boost::beast::http::response<boost::beast::http::string_body>&&()
+{
+    return std::move(response_);
 }
 
 }

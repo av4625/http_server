@@ -24,7 +24,12 @@ public:
         (override));
 
     MOCK_METHOD(
-        void, handle_request, (const request_data&, response&), (const, override));
+        boost::beast::http::message_generator,
+        handle_request,
+        (boost::beast::http::request<boost::beast::http::string_body>&&),
+        (const, override));
+
+    MOCK_METHOD(void, reset, (), (override));
 };
 
 }

@@ -2,7 +2,6 @@
 #define HTTP_SERVER_HPP
 
 #include <functional>
-#include <memory>
 #include <string>
 
 #include <boost/noncopyable.hpp>
@@ -33,6 +32,9 @@ public:
         const std::string& uri,
         method method,
         std::function<void(const request&, response&)> callback) = 0;
+
+    // Reset and clear down all handlers and paths
+    virtual void reset() = 0;
 };
 
 }

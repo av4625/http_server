@@ -1,0 +1,2 @@
+add_executable(http_server_test main.cpp)
+target_link_libraries(http_server_test PUBLIC http_server)

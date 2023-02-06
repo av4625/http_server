@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
 
-#include <boost/assign.hpp>
+#include <optional>
+
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
+
+#include <http/method.hpp>
 
 #include <request_impl.hpp>
 
@@ -10,72 +15,363 @@ namespace http
 namespace
 {
 
-const std::vector<query_parameter> query_parameters{
-    boost::assign::list_of
-        (query_parameter{"key1", "value1"})
-        (query_parameter{"key2", "value2"})};
-
-const std::vector<header> headers{
-    boost::assign::list_of
-        (header{"hkey1", "hvalue1"})
-        (header{"hkey2", "hvalue2"})};
-
-class RequestImplTests : public ::testing::Test
+struct request_params
 {
-protected:
-    RequestImplTests() :
-        request_data_{"GET", "/endpoint", query_parameters, 1, 0, headers},
-        request_(request_data_)
+    request_params(
+        const boost::beast::http::verb method,
+        const std::string& endpoint,
+        const int version,
+        const std::optional<std::string>& content_type,
+        const std::string& body,
+        const std::string& key) :
+            method(method),
+            endpoint(endpoint),
+            version(version),
+            content_type(content_type),
+            body(body),
+            key(key)
     {
     }
 
-    const request_data request_data_;
-    const request_impl request_;
+    const boost::beast::http::verb method;
+    const std::string endpoint;
+    const int version;
+    const std::optional<std::string> content_type;
+    const std::string body;
+    const std::string key;
 };
 
+struct request_params_has : public request_params
+{
+    request_params_has(
+        const boost::beast::http::verb method,
+        const std::string& endpoint,
+        const int version,
+        const std::optional<std::string>& content_type,
+        const std::string& body,
+        const std::string& key,
+        const bool expected) :
+            request_params(method, endpoint, version, content_type, body, key),
+            expected(expected)
+    {
+    }
+
+    const bool expected;
+};
+
+struct request_params_get : public request_params
+{
+    request_params_get(
+        const boost::beast::http::verb method,
+        const std::string& endpoint,
+        const int version,
+        const std::optional<std::string>& content_type,
+        const std::string& body,
+        const std::string& key,
+        const std::string& value) :
+            request_params(method, endpoint, version, content_type, body, key),
+            value(value)
+    {
+    }
+
+    const std::string value;
+};
+
+request_impl build_request(
+    const boost::beast::http::verb method,
+    const std::string& endpoint,
+    const int version,
+    const std::optional<std::string>& content_type,
+    const std::string& body)
+{
+    auto req{boost::beast::http::request<boost::beast::http::string_body>(
+        method, endpoint, version, body)};
+
+    if (content_type)
+    {
+        req.set(boost::beast::http::field::content_type, *content_type);
+    }
+
+    return request_impl{std::move(req)};
+}
+
 class RequestImplHasQueryTests :
-    public RequestImplTests,
-    public ::testing::WithParamInterface<std::pair<bool, std::string> >
+    public ::testing::TestWithParam<request_params_has>
 {
 };
 
 class RequestImplGetQueryTests :
-    public RequestImplTests,
-    public ::testing::WithParamInterface<std::pair<std::string, std::string> >
+    public ::testing::TestWithParam<request_params_get>
+{
+};
+
+class RequestImplGetQueryMissingTests :
+    public ::testing::TestWithParam<request_params>
 {
 };
 
 }
 
-TEST_P(RequestImplHasQueryTests, HasQueryParamWhenWillReturnWhetherItExists)
+TEST_P(RequestImplHasQueryTests, HasQueryParamWillReturnWhetherItExists)
 {
-    EXPECT_EQ(GetParam().first, request_.has_query_param(GetParam().second));
+    const request_impl request{build_request(
+        GetParam().method,
+        GetParam().endpoint,
+        GetParam().version,
+        GetParam().content_type,
+        GetParam().body)};
+
+    EXPECT_EQ(GetParam().expected, request.has_query_param(GetParam().key));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Values,
     RequestImplHasQueryTests,
     ::testing::Values(
-        std::make_pair(true, "key1"),
-        std::make_pair(true, "key2"),
-        std::make_pair(false, "key3"),
-        std::make_pair(false, "")));
+        request_params_has(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key1",
+            true
+        ),
+        request_params_has(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key2",
+            true
+        ),
+        request_params_has(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key3",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key1",
+            true
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key2",
+            true
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key3",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "text/html",
+            "key1=value1&key2=value2",
+            "key1",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            std::nullopt,
+            "key1=value1&key2=value2",
+            "key1",
+            false
+        ),
+        request_params_has(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key1",
+            true
+        ),
+        request_params_has(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            "application/x-www-form-urlencoded",
+            "",
+            "key1",
+            true
+        )));
 
 TEST_P(RequestImplGetQueryTests, GetQueryParamWhenParamExistsWillReturnValue)
 {
-    EXPECT_EQ(GetParam().first, request_.get_query_param(GetParam().second));
+    const request_impl request{build_request(
+        GetParam().method,
+        GetParam().endpoint,
+        GetParam().version,
+        GetParam().content_type,
+        GetParam().body)};
+
+    EXPECT_EQ(GetParam().value, request.get_query_param(GetParam().key));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Values,
     RequestImplGetQueryTests,
     ::testing::Values(
-        std::make_pair("value1", "key1"),
-        std::make_pair("value2", "key2")));
+        request_params_get(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key1",
+            "value1"
+        ),
+        request_params_get(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key2",
+            "value2"
+        ),
+        request_params_get(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key1",
+            "value1"
+        ),
+        request_params_get(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key2",
+            "value2"
+        ),
+        request_params_get(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key1",
+            "value1"
+        ),
+        request_params_get(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            "application/x-www-form-urlencoded",
+            "",
+            "key1",
+            "value1"
+        )));
 
-TEST_F(RequestImplTests, GetQueryParamWhenParamDoesntExistWillThrow)
+TEST_P(RequestImplGetQueryMissingTests, GetQueryParamWhenParamDoesntExistWillThrow)
 {
-    EXPECT_THROW(request_.get_query_param("key3"), std::invalid_argument);
+    const request_impl request{build_request(
+        GetParam().method,
+        GetParam().endpoint,
+        GetParam().version,
+        GetParam().content_type,
+        GetParam().body)};
+
+    EXPECT_THROW(
+        request.get_query_param(GetParam().key), std::invalid_argument);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Values,
+    RequestImplGetQueryMissingTests,
+    ::testing::Values(
+        request_params(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key3"
+        ),
+        request_params(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            "key3"
+        ),
+        request_params(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            "key3"
+        ),
+        request_params(
+            boost::beast::http::verb::get,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            ""
+        ),
+        request_params(
+            boost::beast::http::verb::post,
+            "/endpoint",
+            11,
+            "application/x-www-form-urlencoded",
+            "key1=value1&key2=value2",
+            ""
+        ),
+        request_params(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=value1&key2=value2",
+            11,
+            std::nullopt,
+            "",
+            ""
+        )));
 
 }

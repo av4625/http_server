@@ -1,15 +1,19 @@
 #include "request_handler_impl.hpp"
 
+#include <filesystem>
 #include <fstream>
-#include <string>
 
-#include <boost/lexical_cast.hpp>
+#include <boost/beast/core/string_type.hpp>
+#include <boost/beast/http/empty_body.hpp>
+#include <boost/beast/http/file_body.hpp>
+#include <boost/beast/http/status.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/url/url_view.hpp>
+
+#include <http/response.hpp>
 
 #include "mime_types.hpp"
-#include "response.hpp"
-#include "request_data.hpp"
 #include "request_impl.hpp"
-#include "status_code.hpp"
 #include "stock_responses.hpp"
 
 namespace http
@@ -17,6 +21,7 @@ namespace http
 
 request_handler_impl::request_handler_impl() :
     doc_root_(""),
+    handlers_mutex_(),
     handlers_()
 {
 }
@@ -31,127 +36,158 @@ void request_handler_impl::add_request_handler(
     const method method,
     std::function<void(const request&, response&)> callback)
 {
-    handlers_[{uri, method}] = std::move(callback);
+    boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
+
+    handlers_.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(std::make_pair(uri, method)),
+        std::forward_as_tuple(std::move(callback)));
 }
 
-void request_handler_impl::handle_request(const request_data& req, response& res) const
+boost::beast::http::message_generator request_handler_impl::handle_request(
+    boost::beast::http::request<
+        boost::beast::http::string_body>&& request) const
 {
-    // Decode url to path.
-    std::string request_path;
-    if (!url_decode(req.uri, request_path))
+    const boost::urls::url_view url(request.target());
+    const std::string endpoint(url.path());
+
+    const auto request_type{std::make_pair(endpoint, request.method())};
+
+    boost::shared_lock<boost::upgrade_mutex> handlers_lock(handlers_mutex_);
+
+    if (handlers_.find(request_type) != handlers_.end())
     {
-        res = stock_reply(status_code::bad_request);
-        return;
+        response res(request.version());
+        handlers_.at(request_type)(request_impl(std::move(request)), res);
+
+        return res;
     }
 
-    // Request path must be absolute and not contain "..".
-    if (request_path.empty() ||
-        request_path[0] != '/' ||
-        request_path.find("..") != std::string::npos)
-    {
-        res = stock_reply(status_code::bad_request);
-        return;
-    }
+    handlers_lock.unlock();
 
-    try
+    if (!doc_root_.empty())
     {
-        const auto endpoint{std::make_pair(request_path, string_to_method(req.method))};
-
-        // Custom handler specified for the request
-        if (handlers_.contains(endpoint))
+        // Make sure we can handle the method
+        if (request.method() != boost::beast::http::verb::get &&
+            request.method() != boost::beast::http::verb::head)
         {
-            handlers_.at(endpoint)(request_impl(req), res);
+            return stock_reply(
+                boost::beast::http::status::bad_request,
+                request.keep_alive(),
+                request.version());
         }
-        // Have a directory to serve
-        else if (!doc_root_.empty())
+
+        // Request path must be absolute and not contain "..".
+        if (request.target().empty() ||
+            request.target()[0] != '/' ||
+            request.target().find("..") != boost::beast::string_view::npos)
         {
-            // If path ends in slash (i.e. is a directory) then add "index.html".
-            if (request_path[request_path.size() - 1] == '/')
-            {
-                request_path += "index.html";
-            }
-
-            // Determine the file extension.
-            const std::size_t last_slash_pos = request_path.find_last_of("/");
-            const std::size_t last_dot_pos = request_path.find_last_of(".");
-            std::string extension;
-            if (last_dot_pos != std::string::npos && last_dot_pos > last_slash_pos)
-            {
-                extension = request_path.substr(last_dot_pos + 1);
-            }
-
-            // Open the file to send back.
-            const std::string full_path = doc_root_ + request_path;
-            std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
-            if (!is)
-            {
-                res = stock_reply(status_code::not_found);
-                return;
-            }
-
-            // Fill out the response to be sent to the client.
-            res.set_status_code(status_code::ok);
-
-            char buf[512];
-
-            while (is.read(buf, sizeof(buf)).gcount() > 0)
-            {
-                res.append_content(buf, is.gcount());
-            }
-
-            res.add_header(
-                "Content-Length",
-                boost::lexical_cast<std::string>(res.content_length()));
-            res.add_header("Content-Type", extension_to_mime_type(extension));
-            res.add_header("Connection", "close");
+            return stock_reply(
+                boost::beast::http::status::bad_request,
+                request.keep_alive(),
+                request.version());
         }
+
+        // Build the path to the requested file
+        std::string path{doc_root_};
+        char constexpr path_separator{'/'};
+
+        if (path.back() == path_separator)
+        {
+            path.resize(path.size() - 1);
+        }
+
+        path.append(endpoint);
+
+        // If path ends in slash (i.e. is a directory) then add "index.html".
+        if (path.back() == '/')
+        {
+            path.append("index.html");
+        }
+
+        // Determine the file extension.
+        const std::size_t last_slash_pos{path.find_last_of("/")};
+        const std::size_t last_dot_pos{path.find_last_of(".")};
+        std::string extension;
+        if (last_dot_pos != std::string::npos && last_dot_pos > last_slash_pos)
+        {
+            extension = path.substr(last_dot_pos + 1);
+        }
+
+        // Respond to HEAD request
+        if(request.method() == boost::beast::http::verb::head)
+        {
+            boost::beast::http::response<boost::beast::http::empty_body> response{
+                boost::beast::http::status::ok, request.version()};
+            response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+            response.set(boost::beast::http::field::content_type, extension_to_mime_type(extension));
+
+            try
+            {
+                response.content_length(std::filesystem::file_size(path));
+            }
+            catch(const std::filesystem::filesystem_error& e)
+            {
+                return stock_reply(
+                    boost::beast::http::status::not_found,
+                    request.keep_alive(),
+                    request.version());
+            }
+
+            response.content_length(std::filesystem::file_size(path));
+            response.keep_alive(request.keep_alive());
+            return response;
+        }
+
+        // Attempt to open the file
+        boost::beast::error_code ec;
+        boost::beast::http::file_body::value_type body;
+        body.open(path.c_str(), boost::beast::file_mode::scan, ec);
+
+        // Handle the case where the file doesn't exist
+        if (ec == boost::beast::errc::no_such_file_or_directory)
+        {
+            return stock_reply(
+                boost::beast::http::status::not_found,
+                request.keep_alive(),
+                request.version());
+        }
+
+        // Handle an unknown error
+        if (ec)
+        {
+            return stock_reply(
+                boost::beast::http::status::internal_server_error,
+                request.keep_alive(),
+                request.version());
+        }
+
+        // Respond to GET request
+        boost::beast::http::response<boost::beast::http::file_body> response{
+            std::piecewise_construct,
+            std::make_tuple(std::move(body)),
+            std::make_tuple(boost::beast::http::status::ok, request.version())};
+        response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        response.set(boost::beast::http::field::content_type, extension_to_mime_type(extension));
+        response.prepare_payload();
+        response.keep_alive(request.keep_alive());
+
+        return response;
     }
-    catch(const std::invalid_argument& e)
+    else
     {
-        res = stock_reply(status_code::bad_request);
+        return stock_reply(
+            boost::beast::http::status::not_found,
+            request.keep_alive(),
+            request.version());
     }
 }
 
-bool request_handler_impl::url_decode(const std::string& in, std::string& out)
+void request_handler_impl::reset()
 {
-    out.clear();
-    out.reserve(in.size());
-
-    for (std::size_t i = 0; i < in.size(); ++i)
-    {
-        if (in[i] == '%')
-        {
-            if (i + 3 <= in.size())
-            {
-                int value = 0;
-                std::istringstream is(in.substr(i + 1, 2));
-
-                if (is >> std::hex >> value)
-                {
-                    out += static_cast<char>(value);
-                    i += 2;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else if (in[i] == '+')
-        {
-            out += ' ';
-        }
-        else
-        {
-            out += in[i];
-        }
-    }
-
-    return true;
+    boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
+    handlers_.clear();
+    doc_root_.clear();
 }
 
 }

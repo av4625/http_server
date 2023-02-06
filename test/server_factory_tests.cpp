@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <server.hpp>
-#include <server_factory.hpp>
+#include <http/server.hpp>
+#include <http/server_factory.hpp>
 
 namespace http
 {

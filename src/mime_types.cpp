@@ -15,6 +15,7 @@ const std::unordered_map<std::string, std::string> extension_mime_types{
         ("gif", "image/gif")
         ("htm", "text/html")
         ("html", "text/html")
+        ("php", "text/html")
         ("jpg", "image/jpeg")
         ("png", "image/png")
         ("css", "text/css")
@@ -25,7 +26,7 @@ const std::unordered_map<std::string, std::string> extension_mime_types{
 
 const std::string& extension_to_mime_type(const std::string& extension)
 {
-    if (extension_mime_types.contains(extension))
+    if (extension_mime_types.find(extension) != extension_mime_types.end())
     {
         return extension_mime_types.at(extension);
     }
