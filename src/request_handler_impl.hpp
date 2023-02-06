@@ -5,6 +5,10 @@
 #include <utility>
 
 #include <boost/functional/hash.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include "request_handler.hpp"
 
@@ -23,7 +27,9 @@ public:
         method method,
         std::function<void(const request&, response&)> callback) override;
 
-    void handle_request(const request_data& req, response& res) const override;
+    boost::beast::http::message_generator handle_request(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const override;
 
 private:
     // The directory containing the files to be served.
@@ -38,15 +44,33 @@ private:
     //     }
     // };
 
+    mutable boost::upgrade_mutex handlers_mutex_;
+
+    struct handler
+    {
+    public:
+        explicit handler(std::function<void(const request&, response&)> f) :
+            mutex(),
+            f(std::move(f))
+        {
+        }
+
+        void operator()(const request& req, response& res) const
+        {
+            boost::unique_lock<boost::mutex> lock(mutex);
+            f(req, res);
+        }
+
+    private:
+        mutable boost::mutex mutex;
+        const std::function<void(const request&, response&)> f;
+    };
+
     // Map to hold custom request handlers <<uri, method>, handler>
     std::unordered_map<
         std::pair<std::string, method>,
-        std::function<void(const request&, response&)>,
+        handler,
         boost::hash<std::pair<std::string, method> > > handlers_;
-
-    /* Perform URL-decoding on a string. Returns false if the encoding was
-    invalid. */
-    static bool url_decode(const std::string& in, std::string& out);
 };
 
 }

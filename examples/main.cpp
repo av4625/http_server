@@ -1,12 +1,12 @@
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
 
 #include <boost/asio.hpp>
-#include <boost/lexical_cast.hpp>
 
-#include "server.hpp"
-#include "server_factory.hpp"
+#include <http/server.hpp>
+#include <http/server_factory.hpp>
 
 int main()
 {
@@ -19,17 +19,15 @@ int main()
     server->serve_static("/path/to/html");
 
     server->on(
-        "/timed_tracks.json",
-        http::method::GET,
+        "/endpoint",
+        http::method::get,
         [](const http::request&, http::response& res)
         {
             res.set_status_code(http::status_code::ok);
             res.set_content("[\"thing1\", \"thing2\"]");
-            res.add_header(
-                "Content-Length",
-                boost::lexical_cast<std::string>(res.content_length()));
-            res.add_header("Content-Type", "application/json");
-            res.add_header("Connection", "close");
+            res.add_header(http::field::content_type, "application/json");
+            res.add_header(http::field::connection, "close");
+            res.calculate_and_set_content_length();
         });
 
     server->start_server();

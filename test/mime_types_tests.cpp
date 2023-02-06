@@ -29,6 +29,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_pair("gif", "image/gif"),
         std::make_pair("htm", "text/html"),
         std::make_pair("html", "text/html"),
+        std::make_pair("php", "text/html"),
         std::make_pair("jpg", "image/jpeg"),
         std::make_pair("png", "image/png"),
         std::make_pair("css", "text/css"),

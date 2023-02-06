@@ -2,7 +2,6 @@
 #define HTTP_SERVER_HPP
 
 #include <functional>
-#include <memory>
 #include <string>
 
 #include <boost/noncopyable.hpp>

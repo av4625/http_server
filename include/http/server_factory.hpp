@@ -14,7 +14,7 @@ namespace http
 class server_factory
 {
 public:
-    std::unique_ptr<server> create(
+    std::shared_ptr<server> create(
         const std::string& port,
         const std::shared_ptr<boost::asio::io_context>& io_context) const;
 };

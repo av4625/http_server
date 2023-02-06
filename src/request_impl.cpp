@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <stdexcept>
 
 #include "request_impl.hpp"
@@ -6,34 +5,29 @@
 namespace http
 {
 
-request_impl::request_impl(const request_data& data) : data_(data)
+request_impl::request_impl(boost::beast::http::request<
+    boost::beast::http::string_body>&& request) :
+        request_(std::move(request)),
+        url_(request_.target())
 {
 }
 
 bool request_impl::has_query_param(const std::string& key) const
 {
-    return std::find_if(
-        data_.query_parameters.begin(),
-        data_.query_parameters.end(),
-        [&key](const query_parameter& q_p){return q_p.name == key;}) !=
-            data_.query_parameters.end();
+    return url_.params().contains(key);
 }
 
-const std::string& request_impl::get_query_param(const std::string& key) const
+std::string request_impl::get_query_param(const std::string& key) const
 {
-    const auto param{std::find_if(
-        data_.query_parameters.begin(),
-        data_.query_parameters.end(),
-        [&key](const query_parameter& q_p){return q_p.name == key;})};
+    const auto param{url_.params().find(key)};
 
-    if (param != data_.query_parameters.end())
+    if (param != url_.params().end())
     {
-        return param->value;
+        // -> is deleted
+        return (*param).value;
     }
-    else
-    {
-        throw std::invalid_argument("No query parameter with key: " + key);
-    }
+
+    throw std::invalid_argument(key + " does not exist as a query parameter");
 }
 
 }
