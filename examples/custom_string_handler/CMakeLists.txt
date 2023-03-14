@@ -1,0 +1,2 @@
+add_executable(custom_string_handler_example main.cpp)
+target_link_libraries(custom_string_handler_example PRIVATE http_server)

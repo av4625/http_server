@@ -8,54 +8,19 @@
 #include <boost/asio/buffers_iterator.hpp>
 #include <boost/assign/list_of.hpp>
 
+#include <http/file_response.hpp>
 #include <http/response.hpp>
+#include <http/string_response.hpp>
 
 #include <request_handler_impl.hpp>
+
+#include "test_utilities.hpp"
 
 namespace http
 {
 
 namespace
 {
-
-bool needle_in_haystack(const std::string& haystack, const std::string& needle)
-{
-    if (haystack.find(needle) != std::string::npos)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-struct has_substrs
-{
-public:
-    explicit has_substrs(std::vector<std::string>&& needles) :
-        needles(std::move(needles)),
-        needles_found_(0)
-    {
-    }
-
-    bool operator()(const std::string& haystack)
-    {
-        needles_found_ += std::count_if(
-            needles.begin(),
-            needles.end(),
-            std::bind(needle_in_haystack, haystack, std::placeholders::_1));
-
-        if (needles_found_ == needles.size())
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-private:
-    std::vector<std::string> needles;
-    unsigned int needles_found_;
-};
 
 class RequestHandlerImplTests : public ::testing::Test
 {
@@ -66,37 +31,22 @@ protected:
 
     request_handler_impl request_handler_;
 
-    std::vector<std::string> expect_buffers_has_substrs(
-        boost::beast::http::message_generator&& msg,
-        has_substrs&& has_substrs)
+public:
+    void custom_file_handler(
+        const std::string& path,
+        const std::string& content,
+        const std::string& content_type,
+        const request&,
+        file_response& res)
     {
-        boost::system::error_code ec;
-        const auto buffer{msg.prepare(ec)};
-
-        std::vector<std::string> response_text;
-        response_text.resize(buffer.size(), "");
-
-        for (unsigned int i = 0; i < buffer.size(); ++i)
-        {
-            std::copy(
-                boost::asio::buffers_begin(buffer[i]),
-                boost::asio::buffers_begin(buffer[i]) + buffer[i].size(),
-                std::back_inserter(response_text[i]));
-        }
-
-        const auto it{std::find_if(
-            response_text.begin(),
-            response_text.end(),
-            has_substrs)};
-
-        EXPECT_NE(response_text.end(), it);
-
-        return response_text;
+        std::ofstream ofs(path);
+        ofs << content;
+        res.add_header(field::content_type, content_type);
+        res.set_content(path);
     }
 
-public:
-    void custom_handler(
-        const std::string& content, const request&, response& res)
+    void custom_string_handler(
+        const std::string& content, const request&, string_response& res)
     {
         res.set_content(content);
     }
@@ -201,7 +151,38 @@ TEST_P(RequestHandlerImplAllVerbTests,
 }
 
 TEST_P(RequestHandlerImplAllVerbTests,
-    HandleRequestWhenCustomHandlerWillCallHandler)
+    HandleRequestWhenCustomFileResponseHandlerWillCallHandler)
+{
+    const std::string content{"Fancy HTML"};
+    const std::string content_type{"Fancy/JSON"};
+    const std::string endpoint{"/endpoint"};
+    const std::string path{"./index.html"};
+
+    request_handler_.add_request_handler(
+        endpoint,
+        GetParam(),
+        std::bind(
+            &RequestHandlerImplAllVerbTests::custom_file_handler,
+            this,
+            path,
+            content,
+            content_type,
+            std::placeholders::_1,
+            std::placeholders::_2));
+
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(GetParam(), endpoint, 11);
+
+    auto msg{request_handler_.handle_request(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg), has_substrs(boost::assign::list_of(content_type)));
+
+    std::filesystem::remove(path);
+}
+
+TEST_P(RequestHandlerImplAllVerbTests,
+    HandleRequestWhenCustomStringResponseHandlerWillCallHandler)
 {
     const std::string content{"custom content"};
     const std::string endpoint{"/endpoint"};
@@ -210,7 +191,7 @@ TEST_P(RequestHandlerImplAllVerbTests,
         endpoint,
         GetParam(),
         std::bind(
-            &RequestHandlerImplAllVerbTests::custom_handler,
+            &RequestHandlerImplAllVerbTests::custom_string_handler,
             this,
             content,
             std::placeholders::_1,
@@ -409,7 +390,7 @@ TEST_F(RequestHandlerImplTests, ResetWillClearHandlersAndDirectoryPath)
         "./",
         method::get,
         std::bind(
-            &RequestHandlerImplAllVerbTests::custom_handler,
+            &RequestHandlerImplAllVerbTests::custom_string_handler,
             this,
             "custom content",
             std::placeholders::_1,

@@ -10,7 +10,8 @@
 #include <boost/beast/version.hpp>
 #include <boost/url/url_view.hpp>
 
-#include <http/response.hpp>
+#include <http/file_response.hpp>
+#include <http/string_response.hpp>
 
 #include "mime_types.hpp"
 #include "request_impl.hpp"
@@ -34,14 +35,17 @@ void request_handler_impl::serve_from_directory(const std::string& doc_root)
 void request_handler_impl::add_request_handler(
     const std::string& uri,
     const method method,
-    std::function<void(const request&, response&)> callback)
+    std::function<void(const request&, file_response&)> callback)
 {
-    boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
+    add_handler<file_response>(uri, method, std::move(callback));
+}
 
-    handlers_.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(std::make_pair(uri, method)),
-        std::forward_as_tuple(std::move(callback)));
+void request_handler_impl::add_request_handler(
+    const std::string& uri,
+    const method method,
+    std::function<void(const request&, string_response&)> callback)
+{
+    add_handler<string_response>(uri, method, std::move(callback));
 }
 
 boost::beast::http::message_generator request_handler_impl::handle_request(
@@ -57,10 +61,10 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
 
     if (handlers_.find(request_type) != handlers_.end())
     {
-        response res(request.version());
-        handlers_.at(request_type)(request_impl(std::move(request)), res);
-
-        return res;
+        return (*handlers_.at(request_type))(request_impl(
+            std::move(request)),
+            request.version(),
+            request.keep_alive());
     }
 
     handlers_lock.unlock();

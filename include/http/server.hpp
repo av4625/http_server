@@ -6,9 +6,10 @@
 
 #include <boost/noncopyable.hpp>
 
-#include "request.hpp"
-#include "response.hpp"
+#include "file_response.hpp"
 #include "method.hpp"
+#include "request.hpp"
+#include "string_response.hpp"
 
 namespace http
 {
@@ -31,7 +32,13 @@ public:
     virtual void on(
         const std::string& uri,
         method method,
-        std::function<void(const request&, response&)> callback) = 0;
+        std::function<void(const request&, file_response&)> callback) = 0;
+
+    // Provide function to respond to a certain request
+    virtual void on(
+        const std::string& uri,
+        method method,
+        std::function<void(const request&, string_response&)> callback) = 0;
 
     // Reset and clear down all handlers and paths
     virtual void reset() = 0;

@@ -37,7 +37,8 @@ protected:
         session_manager_mock_(std::make_shared<session_manager_mock>()),
         request_handler_mock_(std::make_shared<request_handler_mock>()),
         callback_check_(),
-        callback_(),
+        file_response_callback_(),
+        string_response_callback_(),
         server_(std::make_shared<server_impl>(
             "0.0.0.0",
             port,
@@ -51,16 +52,25 @@ protected:
     const std::shared_ptr<session_manager_mock> session_manager_mock_;
     const std::shared_ptr<request_handler_mock> request_handler_mock_;
     callback_check callback_check_;
-    std::function<void(const request&, response&)> callback_;
+    std::function<void(const request&, file_response&)> file_response_callback_;
+    std::function<void(const request&, string_response&)> string_response_callback_;
     const std::shared_ptr<server> server_;
 
 public:
-    void save_callback(
+    void save_file_response_callback(
         const std::string&,
         const method,
-        std::function<void(const request&, response&)> callback)
+        std::function<void(const request&, file_response&)> callback)
     {
-        callback_ = std::move(callback);
+        file_response_callback_ = std::move(callback);
+    }
+
+    void save_string_response_callback(
+        const std::string&,
+        const method,
+        std::function<void(const request&, string_response&)> callback)
+    {
+        string_response_callback_ = std::move(callback);
     }
 };
 
@@ -73,26 +83,57 @@ TEST_F(ServerImplTests, ServeStaticWillPassPathToRequestHandler)
     server_->serve_static(path);
 }
 
-TEST_F(ServerImplTests, OnWillAddRequestHandler)
+TEST_F(ServerImplTests, OnWhenFileResponseWillAddRequestHandler)
 {
     const std::string uri{"/endpoint.txt"};
     const method m{method::get};
 
     EXPECT_CALL(*request_handler_mock_, add_request_handler(
-        uri, m, ::testing::_)).WillOnce(::testing::Invoke(
-            this, &ServerImplTests::save_callback));
+        uri,
+        m,
+        ::testing::Matcher<std::function<void(const request&, file_response&)> >(
+            ::testing::_))).WillOnce(::testing::Invoke(
+                this, &ServerImplTests::save_file_response_callback));
 
     server_->on(
         uri,
         m,
-        [this](const request&, response&){callback_check_.increment();});
+        [this](const request&, file_response&){callback_check_.increment();});
 
-    response res(11);
-    callback_(
+    file_response res(11, true);
+    file_response_callback_(
         request_impl(
             boost::beast::http::request<boost::beast::http::string_body>(
                 boost::beast::http::verb::get, "/", 11)),
         res);
+
+    EXPECT_EQ(1, callback_check_.i);
+}
+
+TEST_F(ServerImplTests, OnWhenStringResponseWillAddRequestHandler)
+{
+    const std::string uri{"/endpoint.txt"};
+    const method m{method::get};
+
+    EXPECT_CALL(*request_handler_mock_, add_request_handler(
+        uri,
+        m,
+        ::testing::Matcher<std::function<void(const request&, string_response&)> >(
+            ::testing::_))).WillOnce(::testing::Invoke(
+                this, &ServerImplTests::save_string_response_callback));
+
+    server_->on(
+        uri,
+        m,
+        [this](const request&, string_response&){callback_check_.increment();});
+
+    string_response res(11, true);
+    string_response_callback_(
+        request_impl(
+            boost::beast::http::request<boost::beast::http::string_body>(
+                boost::beast::http::verb::get, "/", 11)),
+        res);
+
     EXPECT_EQ(1, callback_check_.i);
 }
 

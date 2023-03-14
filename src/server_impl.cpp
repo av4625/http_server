@@ -55,7 +55,15 @@ void server_impl::serve_static(const std::string& path)
 void server_impl::on(
     const std::string& uri,
     const method method,
-    std::function<void(const request&, response&)> callback)
+    std::function<void(const request&, file_response&)> callback)
+{
+    request_handler_->add_request_handler(uri, method, std::move(callback));
+}
+
+void server_impl::on(
+    const std::string& uri,
+    const method method,
+    std::function<void(const request&, string_response&)> callback)
 {
     request_handler_->add_request_handler(uri, method, std::move(callback));
 }

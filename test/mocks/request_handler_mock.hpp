@@ -19,7 +19,17 @@ public:
         (
             const std::string&,
             method,
-            std::function<void(const request&, response&)>
+            std::function<void(const request&, file_response&)>
+        ),
+        (override));
+
+    MOCK_METHOD(
+        void,
+        add_request_handler,
+        (
+            const std::string&,
+            method,
+            std::function<void(const request&, string_response&)>
         ),
         (override));
 

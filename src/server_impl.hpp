@@ -35,7 +35,12 @@ public:
     void on(
         const std::string& uri,
         method method,
-        std::function<void(const request&, response&)> callback) override;
+        std::function<void(const request&, file_response&)> callback) override;
+
+    void on(
+        const std::string& uri,
+        method method,
+        std::function<void(const request&, string_response&)> callback) override;
 
     void reset() override;
 

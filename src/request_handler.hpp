@@ -10,8 +10,9 @@
 
 #include <http/method.hpp>
 
+#include "file_response_fwd.hpp"
 #include "request_fwd.hpp"
-#include "response_fwd.hpp"
+#include "string_response_fwd.hpp"
 
 namespace http
 {
@@ -32,9 +33,9 @@ public:
     virtual void serve_from_directory(const std::string& doc_root) = 0;
 
     /**
-     * @brief Add a custom request handler
+     * @brief Add a custom request handler for responding with a file body.
      *        This is thread safe and new handlers can be added while the server
-     *        is unning
+     *        is running.
      *
      * @param[in] uri The endpoint to handle
      * @param[in] method The method to handle
@@ -43,7 +44,21 @@ public:
     virtual void add_request_handler(
         const std::string& uri,
         method method,
-        std::function<void(const request&, response&)> callback) = 0;
+        std::function<void(const request&, file_response&)> callback) = 0;
+
+    /**
+     * @brief Add a custom request handler for responding with a string body.
+     *        This is thread safe and new handlers can be added while the server
+     *        is running.
+     *
+     * @param[in] uri The endpoint to handle
+     * @param[in] method The method to handle
+     * @param[in] callback The handler for the endpoint and method
+     **/
+    virtual void add_request_handler(
+        const std::string& uri,
+        method method,
+        std::function<void(const request&, string_response&)> callback) = 0;
 
     /**
      * @brief Handle a request and produce a response.

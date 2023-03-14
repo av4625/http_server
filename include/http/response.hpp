@@ -3,9 +3,7 @@
 
 #include <string>
 
-#include <boost/beast/http/message.hpp>
 #include <boost/beast/http/message_generator.hpp>
-#include <boost/beast/http/string_body.hpp>
 
 #include "header_field.hpp"
 #include "status_code.hpp"
@@ -16,22 +14,15 @@ namespace http
 class response
 {
 public:
-    explicit response(unsigned int version);
+    virtual ~response() = default;
 
-    void set_status_code(status_code status);
+    virtual void set_status_code(const status_code status) = 0;
 
-    void add_header(field field, const std::string& value);
+    virtual void add_header(const field field, const std::string& value) = 0;
 
-    void set_content(const std::string& content);
+    virtual void calculate_and_set_content_length() = 0;
 
-    void calculate_and_set_content_length();
-
-    operator boost::beast::http::message_generator();
-
-    operator boost::beast::http::response<boost::beast::http::string_body>&&();
-
-private:
-    boost::beast::http::response<boost::beast::http::string_body> response_;
+    virtual operator boost::beast::http::message_generator() = 0;
 };
 
 }
