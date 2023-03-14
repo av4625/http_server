@@ -3,15 +3,17 @@ add_library(unittests STATIC main.cpp)
 target_link_libraries(unittests PUBLIC GTest::gtest)
 
 add_executable(http_server_tests
+    file_response_tests.cpp
     mime_types_tests.cpp
     request_handler_impl_tests.cpp
     request_impl_tests.cpp
-    response_tests.cpp
     server_factory_tests.cpp
     server_impl_tests.cpp
     session_impl_tests.cpp
     session_manager_impl_tests.cpp
-    stock_responses_tests.cpp)
+    stock_responses_tests.cpp
+    string_response_tests.cpp
+    test_utilities.cpp)
 
 target_link_libraries(
     http_server_tests PRIVATE GTest::gmock http_server unittests)

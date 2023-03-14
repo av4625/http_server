@@ -30,6 +30,19 @@ TEST_F(SessionManagerImplTests, StartWillSaveAndRunSession)
 {
     EXPECT_CALL(*session_mock_, run());
     session_manager_.start(session_mock_);
+
+    EXPECT_CALL(*session_mock_, stop());
+    // Call stop all to prove it was added
+    session_manager_.stop_all();
+}
+
+TEST_F(SessionManagerImplTests, StopWillEraseAndStopSession)
+{
+    EXPECT_CALL(*session_mock_, stop());
+    session_manager_.stop(session_mock_);
+
+    // Call stop all to prove it was erased removed
+    session_manager_.stop_all();
 }
 
 TEST_F(SessionManagerImplTests, StopAllWillStopAllSessionsAndRemoveThem)

@@ -1,7 +1,4 @@
-#include <iostream>
 #include <memory>
-#include <string>
-#include <thread>
 
 #include <boost/asio.hpp>
 
@@ -21,7 +18,7 @@ int main()
     server->on(
         "/endpoint",
         http::method::get,
-        [](const http::request&, http::response& res)
+        [](const http::request&, http::string_response& res)
         {
             res.set_status_code(http::status_code::ok);
             res.set_content("[\"thing1\", \"thing2\"]");

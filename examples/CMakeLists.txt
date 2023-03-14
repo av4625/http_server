@@ -1,2 +1,2 @@
-add_executable(http_server_test main.cpp)
-target_link_libraries(http_server_test PUBLIC http_server)
+add_subdirectory(custom_file_handler)
+add_subdirectory(custom_string_handler)

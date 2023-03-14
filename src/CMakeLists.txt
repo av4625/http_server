@@ -1,13 +1,14 @@
 add_library(http_server
+    file_response.cpp
     mime_types.cpp
     request_handler_impl.cpp
     request_impl.cpp
-    response.cpp
     server_factory.cpp
     server_impl.cpp
     session_impl.cpp
     session_manager_impl.cpp
-    stock_responses.cpp)
+    stock_responses.cpp
+    string_response.cpp)
 
 target_link_libraries(http_server
     PUBLIC
