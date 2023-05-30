@@ -5,6 +5,7 @@
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/string_body.hpp>
 
+#include <http/header_field.hpp>
 #include <http/method.hpp>
 
 #include <request_impl.hpp>
@@ -94,6 +95,23 @@ request_impl build_request(
 
     return request_impl{std::move(req)};
 }
+
+class RequestImplTests : public ::testing::Test
+{
+protected:
+    RequestImplTests() :
+        request_(
+            build_request(
+                boost::beast::http::verb::get,
+                "/endpoint",
+                11,
+                "text/plain",
+                "hello"))
+    {
+    }
+
+    const request_impl request_;
+};
 
 class RequestImplHasQueryTests :
     public ::testing::TestWithParam<request_params_has>
@@ -373,5 +391,53 @@ INSTANTIATE_TEST_SUITE_P(
             "",
             ""
         )));
+
+TEST_F(RequestImplTests, HasHeaderWhenHeaderNotPresentAndStringWillReturnFalse)
+{
+    EXPECT_FALSE(request_.has_header("test"));
+}
+
+TEST_F(RequestImplTests, HasHeaderWhenHeaderPresentAndStringWillReturnTrue)
+{
+    EXPECT_TRUE(request_.has_header("Content-Type"));
+}
+
+TEST_F(RequestImplTests, HasHeaderWhenHeaderNotPresentAndFieldWillReturnFalse)
+{
+    EXPECT_FALSE(request_.has_header(field::content_disposition));
+}
+
+TEST_F(RequestImplTests, HasHeaderWhenHeaderPresentAndFieldWillReturnTrue)
+{
+    EXPECT_TRUE(request_.has_header(field::content_type));
+}
+
+TEST_F(RequestImplTests, GetHeaderValueWhenHeaderNotPresentAndStringWillThrow)
+{
+    EXPECT_THROW(request_.get_header_value("test"), std::invalid_argument);
+}
+
+TEST_F(RequestImplTests,
+    GetHeaderValueWhenHeaderPresentAndStringWillReturnValue)
+{
+    EXPECT_EQ("text/plain", request_.get_header_value("Content-Type"));
+}
+
+TEST_F(RequestImplTests, GetHeaderValueWhenHeaderNotPresentAndFieldWillThrow)
+{
+    EXPECT_THROW(
+        request_.get_header_value(field::content_disposition),
+        std::invalid_argument);
+}
+
+TEST_F(RequestImplTests, GetHeaderValueWhenHeaderPresentAndFieldWillReturnValue)
+{
+    EXPECT_EQ("text/plain", request_.get_header_value(field::content_type));
+}
+
+TEST_F(RequestImplTests, BodyWillReturnBody)
+{
+    EXPECT_EQ("hello", request_.body());
+}
 
 }
