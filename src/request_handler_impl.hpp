@@ -38,6 +38,10 @@ public:
         boost::beast::http::request<
             boost::beast::http::string_body>&& request) const override;
 
+    boost::beast::http::message_generator body_limit_reached(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const override;
+
     void reset() override;
 
 private:

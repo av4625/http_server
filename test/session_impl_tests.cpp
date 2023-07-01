@@ -7,10 +7,11 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 
+#include <session_impl.hpp>
+
 #include "mocks/request_handler_mock.hpp"
 #include "mocks/session_manager_mock.hpp"
-
-#include <session_impl.hpp>
+#include "test_utilities.hpp"
 
 namespace http
 {
@@ -24,23 +25,16 @@ const boost::beast::http::verb verb{boost::beast::http::verb::get};
 const boost::beast::http::status ok{boost::beast::http::status::ok};
 const std::string content{"fancy conent"};
 
-MATCHER_P3(RequestChecker, endpoint, version, method_verb, "")
-{
-    return arg.target() == endpoint &&
-        arg.version() == version &&
-        arg.method() == method_verb;
-}
-
 class test_server
 {
 private:
     boost::asio::ip::tcp::acceptor acceptor_;
 };
 
-class SessionImplTests : public ::testing::Test
+class SessionImplBase : public ::testing::Test
 {
 protected:
-    SessionImplTests() :
+    explicit SessionImplBase(const std::uint64_t body_limit) :
         io_context_(std::make_shared<boost::asio::io_context>()),
         resolver_(*io_context_),
         acceptor_(*io_context_),
@@ -58,6 +52,8 @@ protected:
 
         request_.set(
             boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+        request_.body() = content;
+        request_.prepare_payload();
 
         /* Setup a dummy "server" to accept to get a valid socket to construct
            the session. */
@@ -79,17 +75,10 @@ protected:
             boost::asio::make_strand(*io_context_))};
 
         session_ = std::make_shared<session_impl>(
-            std::move(sock), request_handler_mock_, session_manager_mock_);
-    }
-
-    ~SessionImplTests()
-    {
-        // Close acceptor (Is this necessary as we accepted synchronously?)
-        acceptor_.close();
-
-        /* IO context will exit itself when the session is closed and the
-           "server" is no longer accepting, so we can join the thread again*/
-        t_.join();
+            std::move(sock),
+            request_handler_mock_,
+            session_manager_mock_,
+            body_limit);
     }
 
     const std::shared_ptr<boost::asio::io_context> io_context_;
@@ -104,7 +93,9 @@ protected:
     std::shared_ptr<session> session_;
 
     // Pretend "client" sends request and inspects response
-    void send_request_and_expect_response(const bool keep_alive)
+    void send_request_and_expect_response(
+        const bool keep_alive,
+        const boost::beast::http::status status = boost::beast::http::status::ok)
     {
         boost::beast::http::write(stream_, request_);
 
@@ -113,11 +104,48 @@ protected:
 
         boost::beast::http::read(stream_, buffer, res);
 
-        EXPECT_EQ(ok, res.result());
+        EXPECT_EQ(status, res.result());
         EXPECT_EQ(version, res.version());
         EXPECT_EQ(keep_alive, res.keep_alive());
         EXPECT_EQ(content, boost::beast::buffers_to_string(res.body().data()));
     }
+
+    void finish()
+    {
+        // Session stops itself
+        // Close acceptor (Is this necessary as we accepted synchronously?)
+        acceptor_.close();
+
+        /* IO context will exit itself when the session is closed and the
+            "server" is no longer accepting, so we can join the thread again*/
+        t_.join();
+    }
+};
+
+class SessionImplTests : public SessionImplBase
+{
+protected:
+    SessionImplTests() : SessionImplBase(1000000)
+    {
+    }
+};
+
+class SessionImplSmallLimitTests : public SessionImplBase
+{
+protected:
+    SessionImplSmallLimitTests() :
+        SessionImplBase(1),
+        response_413_(boost::beast::http::status::payload_too_large, version)
+    {
+        response_413_.keep_alive(false);
+        response_413_.set(
+            boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        response_413_.set(boost::beast::http::field::content_type, "text/html");
+        response_413_.body() = content;
+        response_413_.prepare_payload();
+    }
+
+    boost::beast::http::response<boost::beast::http::string_body> response_413_;
 };
 
 }
@@ -142,9 +170,12 @@ TEST_F(SessionImplTests,
 
     send_request_and_expect_response(false);
 
-    ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
+    finish();
 
-    // Session stops itself
+    /* GMock keeps session_ alive as it is checked as a param to stop, this is
+       required to make it think its not leaking it
+       https://stackoverflow.com/questions/10286514/why-is-googlemock-leaking-my-shared-ptr */
+    ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
 }
 
 TEST_F(SessionImplTests, StopWhenNotKeepAliveWillAttemptShutdownButHaveNoEffect)
@@ -166,9 +197,14 @@ TEST_F(SessionImplTests, StopWhenNotKeepAliveWillAttemptShutdownButHaveNoEffect)
 
     send_request_and_expect_response(false);
 
+    finish();
+
     // Stop the session
     session_->stop();
 
+    /* GMock keeps session_ alive as it is checked as a param to stop, this is
+       required to make it think its not leaking it
+       https://stackoverflow.com/questions/10286514/why-is-googlemock-leaking-my-shared-ptr */
     ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
 }
 
@@ -192,6 +228,37 @@ TEST_F(SessionImplTests,
 
     // Stop the session
     session_->stop();
+    finish();
+}
+
+TEST_F(SessionImplSmallLimitTests,
+    RunWhenRequestWithBodyBiggerThanLimitWillFail)
+{
+    // Start the session, this will cause an async "loop"
+    session_->run();
+
+    /* Run the io context on another thread so I can call synchronous "client"
+       calls on this thread */
+    t_ = std::thread([this](){io_context_->run();});
+
+    EXPECT_CALL(*session_manager_mock_, stop(session_));
+
+    EXPECT_CALL(*request_handler_mock_, body_limit_reached(
+        RequestChecker(endpoint_target, version, verb)))
+            .WillOnce(::testing::Return(::testing::ByMove(response_413_)));
+
+    boost::beast::http::write(stream_, request_);
+
+    send_request_and_expect_response(
+        false, boost::beast::http::status::payload_too_large);
+
+    // Session stops itself
+    finish();
+
+    /* GMock keeps session_ alive as it is checked as a param to stop, this is
+       required to make it think its not leaking it
+       https://stackoverflow.com/questions/10286514/why-is-googlemock-leaking-my-shared-ptr */
+    ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
 }
 
 }
