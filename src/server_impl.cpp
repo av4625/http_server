@@ -21,7 +21,8 @@ server_impl::server_impl(
         address_(address),
         port_(port),
         session_manager_(std::move(session_manager)),
-        request_handler_(request_handler)
+        request_handler_(request_handler),
+        body_limit_(1048576)
 {
 }
 
@@ -68,6 +69,11 @@ void server_impl::on(
     request_handler_->add_request_handler(uri, method, std::move(callback));
 }
 
+void server_impl::body_limit(const std::uint64_t limit)
+{
+    body_limit_ = limit;
+}
+
 void server_impl::reset()
 {
     request_handler_->reset();
@@ -107,7 +113,10 @@ void server_impl::handle_accept(
            have to be thread safe */
         session_manager_->start(
             std::make_shared<session_impl>(
-                std::move(socket), request_handler_, session_manager_));
+                std::move(socket),
+                request_handler_,
+                session_manager_,
+                body_limit_));
     }
 
     start_accept();

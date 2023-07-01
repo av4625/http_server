@@ -104,6 +104,9 @@ INSTANTIATE_TEST_SUITE_P(
             status_code::not_found,
             std::make_pair("404 Not Found", "85")),
         std::make_pair(
+            status_code::payload_too_large,
+            std::make_pair("413 Payload Too Large", "101")),
+        std::make_pair(
             status_code::internal_server_error,
             std::make_pair("500 Internal Server Error", "109")),
         std::make_pair(

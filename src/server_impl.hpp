@@ -42,6 +42,8 @@ public:
         method method,
         std::function<void(const request&, string_response&)> callback) override;
 
+    void body_limit(std::uint64_t limit) override;
+
     void reset() override;
 
 private:
@@ -66,6 +68,8 @@ private:
     const std::shared_ptr<session_manager> session_manager_;
 
     const std::shared_ptr<request_handler> request_handler_;
+
+    std::uint64_t body_limit_;
 };
 
 }

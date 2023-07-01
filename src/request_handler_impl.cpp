@@ -187,6 +187,16 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
     }
 }
 
+boost::beast::http::message_generator request_handler_impl::body_limit_reached(
+    boost::beast::http::request<
+        boost::beast::http::string_body>&& request) const
+{
+    return stock_reply(
+        boost::beast::http::status::payload_too_large,
+        request.keep_alive(),
+        request.version());
+}
+
 void request_handler_impl::reset()
 {
     boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);

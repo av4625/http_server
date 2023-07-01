@@ -1,14 +1,17 @@
 #ifndef HTTP_SESSION_IMPL_HPP
 #define HTTP_SESSION_IMPL_HPP
 
+#include <cstdint>
 #include <memory>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
-#include <boost/beast/http/message.hpp>
 #include <boost/beast/http/message_generator.hpp>
+#include <boost/beast/http/parser.hpp>
 #include <boost/beast/http/string_body.hpp>
+#include <boost/optional.hpp>
+
 
 #include "request_handler_fwd.hpp"
 #include "session.hpp"
@@ -24,7 +27,8 @@ public:
     session_impl(
         boost::asio::ip::tcp::socket&& socket,
         const std::shared_ptr<request_handler>& request_handler,
-        const std::shared_ptr<session_manager>& session_manager);
+        const std::shared_ptr<session_manager>& session_manager,
+        std::uint64_t limit);
 
     void run() override;
 
@@ -35,7 +39,11 @@ private:
     const std::shared_ptr<request_handler> request_handler_;
     const std::shared_ptr<session_manager> session_manager_;
     boost::beast::flat_buffer buffer_;
-    boost::beast::http::request<boost::beast::http::string_body> request_;
+    /* The parser is stored in an optional container so we can construct it from
+       scratch at the beginning of each new message. */
+    boost::optional<boost::beast::http::request_parser<
+        boost::beast::http::string_body> > parser_;
+    std::uint64_t body_limit_;
 
     void do_read();
 

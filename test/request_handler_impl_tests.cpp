@@ -308,7 +308,7 @@ TEST_F(RequestHandlerImplTests,
     HandleRequestWhenGetAndRootDoesntEndInSlashWillRespondWithFile)
 {
     const std::string content{"Fancy CSS"};
-    const std::filesystem::path dir{"./test"};
+    const std::filesystem::path dir{"./abc"};
     const std::string file{"magic.css"};
 
     std::filesystem::create_directories(dir);
@@ -374,6 +374,20 @@ TEST_F(RequestHandlerImplTests,
     EXPECT_EQ(result_text.end(), it);
 
     std::filesystem::remove(index);
+}
+
+TEST_F(RequestHandlerImplTests,
+    BodyLimitReachedWillReturnPayloadTooLarge)
+{
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(
+            boost::beast::http::verb::get, "/", 11);
+
+    auto msg{request_handler_.body_limit_reached(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg),
+        has_substrs(boost::assign::list_of("413")("Payload Too Large")("1.1")));
 }
 
 TEST_F(RequestHandlerImplTests, ResetWillClearHandlersAndDirectoryPath)

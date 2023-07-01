@@ -76,6 +76,17 @@ public:
             boost::beast::http::string_body>&& request) const = 0;
 
     /**
+     * @brief Return the response for when the request is too large
+     *
+     * @param[in] request The request to handle
+     *
+     * @return The response to send as a message generator
+     **/
+    virtual boost::beast::http::message_generator body_limit_reached(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const = 0;
+
+    /**
      * @brief Clear all custom request handlers and reset server from directory
      *        path.
      *        This is not thread safe and needs to be called after the server

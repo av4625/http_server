@@ -58,6 +58,11 @@ const char not_found[]{
     "<head><title>Not Found</title></head>"
     "<body><h1>404 Not Found</h1></body>"
     "</html>"};
+const char payload_too_large[]{
+    "<html>"
+    "<head><title>Payload Too Large</title></head>"
+    "<body><h1>413 Payload Too Large</h1></body>"
+    "</html>"};
 const char internal_server_error[]{
     "<html>"
     "<head><title>Internal Server Error</title></head>"
@@ -130,6 +135,10 @@ std::string status_code_to_content(const status_code status)
         case status_code::not_found:
         {
             return not_found;
+        }
+        case status_code::payload_too_large:
+        {
+            return payload_too_large;
         }
         case status_code::internal_server_error:
         {
