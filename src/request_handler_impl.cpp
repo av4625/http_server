@@ -75,8 +75,10 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
         if (request.method() != boost::beast::http::verb::get &&
             request.method() != boost::beast::http::verb::head)
         {
+            /* There was no handler for the request with a non GET or HEAD
+               method */
             return stock_reply(
-                boost::beast::http::status::bad_request,
+                boost::beast::http::status::not_found,
                 request.keep_alive(),
                 request.version());
         }

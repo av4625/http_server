@@ -80,7 +80,7 @@ class RequestHandlerImplVerbInvalidTargetTests :
 }
 
 TEST_P(RequestHandlerImplInvalidVerbTests,
-    HandleRequestWhenVerbNotGetOrHeadWillReturnBadRequest)
+    HandleRequestWhenVerbNotGetOrHeadAndNoCustomHandlerWillReturnNotFound)
 {
     request_handler_.serve_from_directory("/");
 
@@ -92,7 +92,7 @@ TEST_P(RequestHandlerImplInvalidVerbTests,
 
     expect_buffers_has_substrs(
         std::move(msg),
-        has_substrs(boost::assign::list_of("400")("Bad Request")("1.1")));
+        has_substrs(boost::assign::list_of("404")("Not Found")("1.1")));
 }
 
 INSTANTIATE_TEST_SUITE_P(

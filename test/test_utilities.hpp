@@ -22,8 +22,7 @@ public:
     bool operator()(const std::string& haystack);
 
 private:
-    std::vector<std::string> needles;
-    unsigned int needles_found_;
+    std::vector<std::string> needles_;
 };
 
 std::vector<std::string> expect_buffers_has_substrs(

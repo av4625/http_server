@@ -199,13 +199,13 @@ TEST_F(SessionImplTests, StopWhenNotKeepAliveWillAttemptShutdownButHaveNoEffect)
 
     finish();
 
-    // Stop the session
-    session_->stop();
-
     /* GMock keeps session_ alive as it is checked as a param to stop, this is
        required to make it think its not leaking it
        https://stackoverflow.com/questions/10286514/why-is-googlemock-leaking-my-shared-ptr */
     ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
+
+    // Stop the session
+    session_->stop();
 }
 
 TEST_F(SessionImplTests,
@@ -226,9 +226,16 @@ TEST_F(SessionImplTests,
 
     send_request_and_expect_response(true);
 
+    EXPECT_CALL(*session_manager_mock_, stop(session_));
+
     // Stop the session
     session_->stop();
     finish();
+
+    /* GMock keeps session_ alive as it is checked as a param to stop, this is
+       required to make it think its not leaking it
+       https://stackoverflow.com/questions/10286514/why-is-googlemock-leaking-my-shared-ptr */
+    ::testing::Mock::VerifyAndClearExpectations(session_manager_mock_.get());
 }
 
 TEST_F(SessionImplSmallLimitTests,
