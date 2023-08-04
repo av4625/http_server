@@ -1,5 +1,7 @@
 #include "test_utilities.hpp"
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 namespace http
@@ -16,19 +18,20 @@ bool needle_in_haystack(const std::string& haystack, const std::string& needle)
 }
 
 has_substrs::has_substrs(std::vector<std::string>&& needles) :
-    needles(std::move(needles)),
-    needles_found_(0)
+    needles_(std::move(needles))
 {
 }
 
 bool has_substrs::operator()(const std::string& haystack)
 {
-    needles_found_ += std::count_if(
-        needles.begin(),
-        needles.end(),
-        std::bind(needle_in_haystack, haystack, std::placeholders::_1));
+    needles_.erase(
+        std::remove_if(
+            needles_.begin(),
+            needles_.end(),
+            std::bind(needle_in_haystack, haystack, std::placeholders::_1)),
+        needles_.end());
 
-    if (needles_found_ == needles.size())
+    if (needles_.size() == 0)
     {
         return true;
     }

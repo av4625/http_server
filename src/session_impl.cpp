@@ -127,9 +127,13 @@ void session_impl::do_close()
     // Send a TCP shutdown
     boost::beast::error_code ec;
     stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-    stream_.cancel();
+    /* Should cancel be used? If so handlers would need to call session manager
+       stop when operation aborted or they will never be removed from the
+       manager */
+    // stream_.cancel();
 
-    // At this point the connection is closed gracefully
+    /* At this point the connection is closed gracefully, any outstanding read
+       or write handlers will be called with an end of stream error code */
 }
 
 }
