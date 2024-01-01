@@ -23,7 +23,8 @@ namespace http
 request_handler_impl::request_handler_impl() :
     doc_root_(""),
     handlers_mutex_(),
-    handlers_()
+    handlers_(),
+    generic_handler_()
 {
 }
 
@@ -46,6 +47,20 @@ void request_handler_impl::add_request_handler(
     std::function<void(const request&, string_response&)> callback)
 {
     add_handler<string_response>(uri, method, std::move(callback));
+}
+
+void request_handler_impl::add_generic_request_handler(
+    std::function<void(const request&, file_response&)> callback)
+{
+    generic_handler_ = std::make_shared<handler_impl<file_response> >(
+        std::move(callback));
+}
+
+void request_handler_impl::add_generic_request_handler(
+    std::function<void(const request&, string_response&)> callback)
+{
+    generic_handler_ = std::make_shared<handler_impl<string_response> >(
+        std::move(callback));
 }
 
 boost::beast::http::message_generator request_handler_impl::handle_request(
@@ -77,10 +92,7 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
         {
             /* There was no handler for the request with a non GET or HEAD
                method */
-            return stock_reply(
-                boost::beast::http::status::not_found,
-                request.keep_alive(),
-                request.version());
+            return not_found(std::move(request));
         }
 
         // Request path must be absolute and not contain "..".
@@ -134,10 +146,7 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
             }
             catch(const std::filesystem::filesystem_error& e)
             {
-                return stock_reply(
-                    boost::beast::http::status::not_found,
-                    request.keep_alive(),
-                    request.version());
+                return not_found(std::move(request));
             }
 
             response.content_length(std::filesystem::file_size(path));
@@ -153,10 +162,7 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
         // Handle the case where the file doesn't exist
         if (ec == boost::beast::errc::no_such_file_or_directory)
         {
-            return stock_reply(
-                boost::beast::http::status::not_found,
-                request.keep_alive(),
-                request.version());
+            return not_found(std::move(request));
         }
 
         // Handle an unknown error
@@ -180,13 +186,8 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
 
         return response;
     }
-    else
-    {
-        return stock_reply(
-            boost::beast::http::status::not_found,
-            request.keep_alive(),
-            request.version());
-    }
+
+    return not_found(std::move(request));
 }
 
 boost::beast::http::message_generator request_handler_impl::body_limit_reached(
@@ -204,6 +205,23 @@ void request_handler_impl::reset()
     boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
     handlers_.clear();
     doc_root_.clear();
+}
+
+boost::beast::http::message_generator request_handler_impl::not_found(
+    boost::beast::http::request<boost::beast::http::string_body>&& request) const
+{
+    if (generic_handler_)
+    {
+        return (*generic_handler_)(request_impl(
+            std::move(request)),
+            request.version(),
+            request.keep_alive());
+    }
+
+    return stock_reply(
+        boost::beast::http::status::not_found,
+        request.keep_alive(),
+        request.version());
 }
 
 }

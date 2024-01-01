@@ -130,6 +130,16 @@ class RequestImplGetQueryMissingTests :
 
 }
 
+TEST_F(RequestImplTests, GetMethodWillReturnMethod)
+{
+    EXPECT_EQ(method::get, request_.get_method());
+}
+
+TEST_F(RequestImplTests, GetEndpointWillReturnEndpoint)
+{
+    EXPECT_EQ("/endpoint", request_.get_endpoint());
+}
+
 TEST_P(RequestImplHasQueryTests, HasQueryParamWillReturnWhetherItExists)
 {
     const request_impl request{build_request(

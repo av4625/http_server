@@ -69,6 +69,18 @@ void server_impl::on(
     request_handler_->add_request_handler(uri, method, std::move(callback));
 }
 
+void server_impl::add_generic_request_handler(
+    std::function<void(const request&, file_response&)> callback)
+{
+    request_handler_->add_generic_request_handler(std::move(callback));
+}
+
+void server_impl::add_generic_request_handler(
+    std::function<void(const request&, string_response&)> callback)
+{
+    request_handler_->add_generic_request_handler(std::move(callback));
+}
+
 void server_impl::body_limit(const std::uint64_t limit)
 {
     body_limit_ = limit;
