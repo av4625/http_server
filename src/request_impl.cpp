@@ -27,6 +27,16 @@ request_impl::request_impl(boost::beast::http::request<
 {
 }
 
+method request_impl::get_method() const
+{
+    return request_.method();
+}
+
+std::string request_impl::get_endpoint() const
+{
+    return url_.path();
+}
+
 bool request_impl::has_query_param(const std::string& key) const
 {
     return url_.params().contains(key);

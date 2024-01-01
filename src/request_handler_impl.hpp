@@ -34,6 +34,12 @@ public:
         method method,
         std::function<void(const request&, string_response&)> callback) override;
 
+    void add_generic_request_handler(
+        std::function<void(const request&, file_response&)> callback) override;
+
+    void add_generic_request_handler(
+        std::function<void(const request&, string_response&)> callback) override;
+
     boost::beast::http::message_generator handle_request(
         boost::beast::http::request<
             boost::beast::http::string_body>&& request) const override;
@@ -115,6 +121,12 @@ private:
         std::pair<std::string, method>,
         const std::shared_ptr<const handler>,
         boost::hash<std::pair<std::string, method> > > handlers_;
+
+    std::shared_ptr<const handler> generic_handler_;
+
+    boost::beast::http::message_generator not_found(
+        boost::beast::http::request<
+            boost::beast::http::string_body>&& request) const;
 };
 
 }

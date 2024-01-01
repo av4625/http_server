@@ -34,6 +34,18 @@ public:
         (override));
 
     MOCK_METHOD(
+        void,
+        add_generic_request_handler,
+        (std::function<void(const request&, file_response&)>),
+        (override));
+
+    MOCK_METHOD(
+        void,
+        add_generic_request_handler,
+        (std::function<void(const request&, string_response&)>),
+        (override));
+
+    MOCK_METHOD(
         boost::beast::http::message_generator,
         handle_request,
         (boost::beast::http::request<boost::beast::http::string_body>&&),

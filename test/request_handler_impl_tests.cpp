@@ -206,6 +206,114 @@ TEST_P(RequestHandlerImplAllVerbTests,
         std::move(msg), has_substrs(boost::assign::list_of(content)));
 }
 
+TEST_P(RequestHandlerImplAllVerbTests,
+    HandleRequestWhenGenericFileResponseHandlerWillCallHandler)
+{
+    const std::string content{"Fancy HTML"};
+    const std::string content_type{"Fancy/JSON"};
+    const std::string endpoint{"/endpoint"};
+    const std::string path{"./index.html"};
+
+    request_handler_.add_generic_request_handler(
+        std::bind(
+            &RequestHandlerImplAllVerbTests::custom_file_handler,
+            this,
+            path,
+            content,
+            content_type,
+            std::placeholders::_1,
+            std::placeholders::_2));
+
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(GetParam(), endpoint, 11);
+
+    auto msg{request_handler_.handle_request(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg), has_substrs(boost::assign::list_of(content_type)));
+
+    std::filesystem::remove(path);
+}
+
+TEST_P(RequestHandlerImplAllVerbTests,
+    HandleRequestWhenGenericStringResponseHandlerWillCallHandler)
+{
+    const std::string content{"custom content"};
+    const std::string endpoint{"/endpoint"};
+
+    request_handler_.add_generic_request_handler(
+        std::bind(
+            &RequestHandlerImplAllVerbTests::custom_string_handler,
+            this,
+            content,
+            std::placeholders::_1,
+            std::placeholders::_2));
+
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(GetParam(), endpoint, 11);
+
+    auto msg{request_handler_.handle_request(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg), has_substrs(boost::assign::list_of(content)));
+}
+
+TEST_P(RequestHandlerImplAllVerbTests,
+    HandleRequestWhenGenericFileResponseHandlerAndDocRootSetWillCallGenericHandler)
+{
+    request_handler_.serve_from_directory("/");
+
+    const std::string content{"Fancy HTML"};
+    const std::string content_type{"Fancy/JSON"};
+    const std::string endpoint{"/endpoint"};
+    const std::string path{"./index.html"};
+
+    request_handler_.add_generic_request_handler(
+        std::bind(
+            &RequestHandlerImplAllVerbTests::custom_file_handler,
+            this,
+            path,
+            content,
+            content_type,
+            std::placeholders::_1,
+            std::placeholders::_2));
+
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(GetParam(), endpoint, 11);
+
+    auto msg{request_handler_.handle_request(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg), has_substrs(boost::assign::list_of(content_type)));
+
+    std::filesystem::remove(path);
+}
+
+TEST_P(RequestHandlerImplAllVerbTests,
+    HandleRequestWhenGenericStringResponseHandlerAndDocRootSetWillCallGenericHandler)
+{
+    request_handler_.serve_from_directory("/");
+
+    const std::string content{"custom content"};
+    const std::string endpoint{"/endpoint"};
+
+    request_handler_.add_generic_request_handler(
+        std::bind(
+            &RequestHandlerImplAllVerbTests::custom_string_handler,
+            this,
+            content,
+            std::placeholders::_1,
+            std::placeholders::_2));
+
+    boost::beast::http::request<
+        boost::beast::http::string_body> request(GetParam(), endpoint, 11);
+
+    auto msg{request_handler_.handle_request(std::move(request))};
+
+    expect_buffers_has_substrs(
+        std::move(msg), has_substrs(boost::assign::list_of(content)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Values,
     RequestHandlerImplAllVerbTests,

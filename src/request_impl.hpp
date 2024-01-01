@@ -18,6 +18,10 @@ public:
     explicit request_impl(boost::beast::http::request<
         boost::beast::http::string_body>&& request);
 
+    method get_method() const override;
+
+    std::string get_endpoint() const override;
+
     bool has_query_param(const std::string& key) const override;
 
     std::string get_query_param(const std::string& key) const override;

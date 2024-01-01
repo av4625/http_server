@@ -21,28 +21,28 @@ public:
     virtual ~server() = default;
 
     /**
-     * @brief Start the server
+     * @brief Start the server.
     */
     virtual void start_server() = 0;
 
     /**
-     * @brief End the server
+     * @brief End the server.
     */
     virtual void end_server() = 0;
 
     /**
-     * @brief Serve files from a directory
+     * @brief Serve files from a directory.
      *
-     * @param path The path to the directory to serve
+     * @param path[in] The path to the directory to serve.
     */
     virtual void serve_static(const std::string& path) = 0;
 
     /**
-     * @brief Provide function to respond with a file body to a certain request
+     * @brief Provide function to respond with a file body to a certain request.
      *
-     * @param uri The endpoint
-     * @param method The method of the request
-     * @param callback The function to call to build the response
+     * @param uri[in] The endpoint.
+     * @param method[in] The method of the request.
+     * @param callback[in] The function to call to build the response.
     */
     virtual void on(
         const std::string& uri,
@@ -51,11 +51,11 @@ public:
 
     /**
      * @brief Provide function to respond with a string body to a certain
-     *        request
+     *        request.
      *
-     * @param uri The endpoint
-     * @param method The method of the request
-     * @param callback The function to call to build the response
+     * @param uri[in] The endpoint.
+     * @param method[in] The method of the request.
+     * @param callback[in] The function to call to build the response.
     */
     virtual void on(
         const std::string& uri,
@@ -63,14 +63,32 @@ public:
         std::function<void(const request&, string_response&)> callback) = 0;
 
     /**
-     * @brief Provide a body limit in bytes for incoming requests
+     * @brief Provide function to respond with a file body to any request that
+     *        has no handler.
      *
-     * @param limit The limit in bytes
+     * @param callback[in] The function to call to build the response.
+     **/
+    virtual void add_generic_request_handler(
+        std::function<void(const request&, file_response&)> callback) = 0;
+
+    /**
+     * @brief Provide function to respond with a string body to any request that
+     *        has no handler.
+     *
+     * @param callback[in] The function to call to build the response.
+     **/
+    virtual void add_generic_request_handler(
+        std::function<void(const request&, string_response&)> callback) = 0;
+
+    /**
+     * @brief Provide a body limit in bytes for incoming requests.
+     *
+     * @param limit[in] The limit in bytes.
     */
     virtual void body_limit(std::uint64_t limit) = 0;
 
     /**
-     * @brief Reset and clear down all handlers and paths
+     * @brief Reset and clear down all handlers and paths.
     */
     virtual void reset() = 0;
 };

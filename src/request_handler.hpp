@@ -61,6 +61,32 @@ public:
         std::function<void(const request&, string_response&)> callback) = 0;
 
     /**
+     * @brief Add a generic request handler for responding with a file body.
+     *        If a request doesn't match any exiting handler or there is no
+     *        static file for it this handler will be called.
+     *        This is not thread safe and needs to be called when the server is
+     *        not running
+     *
+     * @param[in] callback The handler to call for any request that doesn't
+     *                     match an existing handler
+     **/
+    virtual void add_generic_request_handler(
+        std::function<void(const request&, file_response&)> callback) = 0;
+
+    /**
+     * @brief Add a generic request handler for responding with a string body.
+     *        If a request doesn't match any exiting handler or there is no
+     *        static file for it this handler will be called.
+     *        This is not thread safe and needs to be called when the server is
+     *        not running
+     *
+     * @param[in] callback The handler to call for any request that doesn't
+     *                     match an existing handler
+     **/
+    virtual void add_generic_request_handler(
+        std::function<void(const request&, string_response&)> callback) = 0;
+
+    /**
      * @brief Handle a request and produce a response.
      *        This is thread safe so multiple requests can be trying to access
      *        the same custom handler at the same time, but the same custom

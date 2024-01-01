@@ -82,6 +82,18 @@ public:
     {
         string_response_callback_ = std::move(callback);
     }
+
+    void save_generic_file_response_callback(
+        std::function<void(const request&, file_response&)> callback)
+    {
+        file_response_callback_ = std::move(callback);
+    }
+
+    void save_generic_string_response_callback(
+        std::function<void(const request&, string_response&)> callback)
+    {
+        string_response_callback_ = std::move(callback);
+    }
 };
 
 }
@@ -135,6 +147,48 @@ TEST_F(ServerImplTests, OnWhenStringResponseWillAddRequestHandler)
     server_->on(
         uri,
         m,
+        [this](const request&, string_response&){callback_check_.increment();});
+
+    string_response res(version, true);
+    string_response_callback_(
+        request_impl(
+            boost::beast::http::request<boost::beast::http::string_body>(
+                verb, "/", version)),
+        res);
+
+    EXPECT_EQ(1, callback_check_.i);
+}
+
+TEST_F(ServerImplTests,
+    AddGenericRequestHandlerWhenFileResponseWillAddRequestHandler)
+{
+    EXPECT_CALL(*request_handler_mock_, add_generic_request_handler(
+        ::testing::Matcher<std::function<void(const request&, file_response&)> >(
+            ::testing::_))).WillOnce(::testing::Invoke(
+                this, &ServerImplTests::save_generic_file_response_callback));
+
+    server_->add_generic_request_handler(
+        [this](const request&, file_response&){callback_check_.increment();});
+
+    file_response res(version, true);
+    file_response_callback_(
+        request_impl(
+            boost::beast::http::request<boost::beast::http::string_body>(
+                verb, "/", version)),
+        res);
+
+    EXPECT_EQ(1, callback_check_.i);
+}
+
+TEST_F(ServerImplTests,
+    AddGenericRequestHandlerWhenStringResponseWillAddRequestHandler)
+{
+    EXPECT_CALL(*request_handler_mock_, add_generic_request_handler(
+        ::testing::Matcher<std::function<void(const request&, string_response&)> >(
+            ::testing::_))).WillOnce(::testing::Invoke(
+                this, &ServerImplTests::save_generic_string_response_callback));
+
+    server_->add_generic_request_handler(
         [this](const request&, string_response&){callback_check_.increment();});
 
     string_response res(version, true);

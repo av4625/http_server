@@ -42,6 +42,12 @@ public:
         method method,
         std::function<void(const request&, string_response&)> callback) override;
 
+    void add_generic_request_handler(
+        std::function<void(const request&, file_response&)> callback) override;
+
+    void add_generic_request_handler(
+        std::function<void(const request&, string_response&)> callback) override;
+
     void body_limit(std::uint64_t limit) override;
 
     void reset() override;

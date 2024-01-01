@@ -15,6 +15,11 @@ public:
 
     operator boost::beast::http::message_generator() override;
 
+    /**
+     * @brief Set the content for the response.
+     *
+     * @param content[in] The content as a string.
+    */
     void set_content(const std::string& path);
 
 private:
