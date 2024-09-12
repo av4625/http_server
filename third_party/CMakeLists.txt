@@ -14,17 +14,21 @@ endif()
 include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
 conan_cmake_configure(
-    REQUIRES boost/1.81.0 gtest/1.12.1
+    REQUIRES boost/1.86.0 gtest/1.12.1 poco/1.13.3
     GENERATORS cmake_find_package
     OPTIONS
-    boost:without_atomic=False
-    boost:without_chrono=False
-    boost:without_container=False
+    boost:header_only=True
+    boost:error_code_header_only=True
+    boost:without_atomic=True
+    boost:without_charconv=True
+    boost:without_chrono=True
+    boost:without_cobalt=True
+    boost:without_container=True
     boost:without_context=True
     boost:without_contract=True
     boost:without_coroutine=True
-    boost:without_date_time=False
-    boost:without_exception=False
+    boost:without_date_time=True
+    boost:without_exception=True
     boost:without_fiber=True
     boost:without_filesystem=True
     boost:without_graph=True
@@ -42,14 +46,42 @@ conan_cmake_configure(
     boost:without_regex=True
     boost:without_serialization=True
     boost:without_stacktrace=True
-    boost:without_system=False
+    boost:without_system=True
     boost:without_test=True
-    boost:without_thread=False
+    boost:without_thread=True
     boost:without_timer=True
     boost:without_type_erasure=True
-    boost:without_url=False
+    boost:without_url=True
     boost:without_wave=True
-    boost:visibility=global)
+    poco:enable_activerecord=False
+    poco:enable_apacheconnector=False
+    poco:enable_cppparser=False
+    poco:enable_crypto=False
+    poco:enable_data=False
+    poco:enable_data_mysql=False
+    poco:enable_data_odbc=False
+    poco:enable_data_postgresql=False
+    poco:enable_data_sqlite=False
+    poco:enable_encodings=False
+    poco:enable_fork=False
+    poco:enable_json=False
+    poco:enable_jwt=False
+    poco:enable_mongodb=False
+    poco:enable_net=False
+    poco:enable_netssl=False
+    poco:enable_pdf=False
+    poco:enable_pagecompiler=False
+    poco:enable_pagecompiler_file2page=False
+    poco:enable_pocodoc=False
+    poco:enable_redis=False
+    poco:enable_sevenzip=False
+    poco:enable_util=False
+    poco:enable_xml=False
+    poco:enable_zip=False
+    poco:enable_activerecord=False
+    poco:enable_activerecord_compiler=False
+    poco:enable_prometheus=False
+    poco:with_sql_parser=False)
 
 conan_cmake_autodetect(settings)
 
@@ -60,16 +92,11 @@ conan_cmake_install(
     SETTINGS ${settings})
 
 find_package(
-    Boost 1.81.0
+    Boost 1.86.0
     EXACT REQUIRED COMPONENTS
-    atomic
-    chrono
-    container
-    date_time
-    exception
-    system
-    thread
-    url
+    headers
     REQUIRED GLOBAL)
 
 find_package(GTest 1.12.1 EXACT REQUIRED COMPONENTS gtest gmock REQUIRED GLOBAL)
+
+find_package(Poco 1.13.3 EXACT REQUIRED COMPONENTS Foundation REQUIRED GLOBAL)

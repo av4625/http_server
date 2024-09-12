@@ -10,11 +10,7 @@ add_library(http_server
     stock_responses.cpp
     string_response.cpp)
 
-target_link_libraries(http_server
-    PUBLIC
-        Boost::boost
-    PRIVATE
-        Boost::url Boost::thread)
+target_link_libraries(http_server PUBLIC Boost::headers Poco::Foundation)
 
 target_include_directories(
     http_server PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)

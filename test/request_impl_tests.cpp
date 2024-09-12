@@ -334,6 +334,24 @@ INSTANTIATE_TEST_SUITE_P(
             "",
             "key1",
             "value1"
+        ),
+        request_params_get(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=va+lue1&key2=value2",
+            11,
+            "application/x-www-form-urlencoded",
+            "",
+            "key1",
+            "va lue1"
+        ),
+        request_params_get(
+            boost::beast::http::verb::head,
+            "/endpoint?key1=va%20lue1&key2=value2",
+            11,
+            "application/x-www-form-urlencoded",
+            "",
+            "key1",
+            "va lue1"
         )));
 
 TEST_P(RequestImplGetQueryMissingTests, GetQueryParamWhenParamDoesntExistWillThrow)
