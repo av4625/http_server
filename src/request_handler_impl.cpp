@@ -8,7 +8,9 @@
 #include <boost/beast/http/file_body.hpp>
 #include <boost/beast/http/status.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/url/url_view.hpp>
+
+#include <Poco/URI.h>
+#include <Poco/Exception.h>
 
 #include <http/file_response.hpp>
 #include <http/string_response.hpp>
@@ -67,19 +69,36 @@ boost::beast::http::message_generator request_handler_impl::handle_request(
     boost::beast::http::request<
         boost::beast::http::string_body>&& request) const
 {
-    const boost::urls::url_view url(request.target());
-    const std::string endpoint(url.path());
+    Poco::URI uri;
+
+    try
+    {
+        uri = request.target();
+    }
+    catch(const Poco::SyntaxException&)
+    {
+        return not_found(std::move(request));
+    }
+
+    const std::string endpoint(uri.getPath());
 
     const auto request_type{std::make_pair(endpoint, request.method())};
 
-    boost::shared_lock<boost::upgrade_mutex> handlers_lock(handlers_mutex_);
+    std::shared_lock handlers_lock{handlers_mutex_};
 
     if (handlers_.find(request_type) != handlers_.end())
     {
-        return (*handlers_.at(request_type))(request_impl(
-            std::move(request)),
-            request.version(),
-            request.keep_alive());
+        try
+        {
+            return (*handlers_.at(request_type))(request_impl(
+                std::move(request)),
+                request.version(),
+                request.keep_alive());
+        }
+        catch(const std::exception&)
+        {
+            return not_found(std::move(request));
+        }
     }
 
     handlers_lock.unlock();
@@ -202,7 +221,7 @@ boost::beast::http::message_generator request_handler_impl::body_limit_reached(
 
 void request_handler_impl::reset()
 {
-    boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
+    std::unique_lock lock{handlers_mutex_};
     handlers_.clear();
     doc_root_.clear();
 }
@@ -212,10 +231,17 @@ boost::beast::http::message_generator request_handler_impl::not_found(
 {
     if (generic_handler_)
     {
-        return (*generic_handler_)(request_impl(
-            std::move(request)),
-            request.version(),
-            request.keep_alive());
+        try
+        {
+            return (*generic_handler_)(request_impl(
+                std::move(request)),
+                request.version(),
+                request.keep_alive());
+        }
+        catch(const std::exception&)
+        {
+            return not_found(std::move(request));
+        }
     }
 
     return stock_reply(

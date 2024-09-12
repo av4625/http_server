@@ -8,22 +8,14 @@
 namespace http
 {
 
-namespace
-{
-
-
-
-}
-
 request_impl::request_impl(boost::beast::http::request<
     boost::beast::http::string_body>&& request) :
         request_(std::move(request)),
-        url_str_(
-            (request_.method() == method::post &&
-                request_[field::content_type] == "application/x-www-form-urlencoded") ?
-                    (std::string(request_.target()) + "?" + request_.body()) :
-                    (std::string(request_.target()))),
-        url_(url_str_)
+        uri_((request_.method() == method::post &&
+            request_[field::content_type] == "application/x-www-form-urlencoded") ?
+                (std::string(request_.target()) + "?" + request_.body()) :
+                (std::string(request_.target()))),
+        query_parameters_(std::nullopt)
 {
 }
 
@@ -34,22 +26,45 @@ method request_impl::get_method() const
 
 std::string request_impl::get_endpoint() const
 {
-    return url_.path();
+    return uri_.getPath();
 }
 
 bool request_impl::has_query_param(const std::string& key) const
 {
-    return url_.params().contains(key);
+    if (!query_parameters_)
+    {
+        query_parameters_ = uri_.getQueryParameters();
+    }
+
+    return std::any_of(
+        query_parameters_->cbegin(),
+        query_parameters_->cend(),
+        [&key](const std::pair<std::string, std::string>& param)
+        {
+            return param.first == key;
+        }
+    );
 }
 
 std::string request_impl::get_query_param(const std::string& key) const
 {
-    const auto param{url_.params().find(key)};
-
-    if (param != url_.params().end())
+    if (!query_parameters_)
     {
-        // -> is deleted
-        return (*param).value;
+        query_parameters_ = uri_.getQueryParameters();
+    }
+
+    const auto param{std::find_if(
+        query_parameters_->cbegin(),
+        query_parameters_->cend(),
+        [&key](const std::pair<std::string, std::string>& param)
+        {
+            return param.first == key;
+        }
+    )};
+
+    if (param != query_parameters_->cend())
+    {
+        return param->second;
     }
 
     throw std::invalid_argument(key + " does not exist as a query parameter");

@@ -2,14 +2,11 @@
 #define HTTP_REQUEST_HANDLER_IMPL_HPP
 
 #include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
 #include <boost/functional/hash.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include "request_handler.hpp"
 #include "response_fwd.hpp"
@@ -63,7 +60,7 @@ private:
     //     }
     // };
 
-    mutable boost::upgrade_mutex handlers_mutex_;
+    mutable std::shared_mutex handlers_mutex_;
 
     template <typename T>
     void add_handler(
@@ -71,7 +68,7 @@ private:
         const method method,
         std::function<void(const request&, T&)> callback)
     {
-        boost::unique_lock<boost::upgrade_mutex> lock(handlers_mutex_);
+        std::unique_lock lock{handlers_mutex_};
 
         handlers_.emplace(
             std::piecewise_construct,
@@ -105,14 +102,14 @@ private:
             const bool keep_alive) const override
         {
             T res{version, keep_alive};
-            boost::unique_lock<boost::mutex> lock(mutex_);
+            std::unique_lock lock{mutex_};
             f_(req, res);
 
             return res;
         }
 
     private:
-        mutable boost::mutex mutex_;
+        mutable std::mutex mutex_;
         const std::function<void(const request&, T&)> f_;
     };
 
